@@ -2,6 +2,13 @@
 // 3MK F X G WORLD - Main Frontend Application Logic (User Auth Integrated)
 // ==========================================================================
 
+// ==== API BASE URL =================================================
+const API_BASE = 'https://threemkfxg-imju.onrender.com'; // Render backend URL
+// ====================================================================
+
+// 3MK F X G WORLD - Main Frontend Application Logic (User Auth Integrated)
+// ==========================================================================
+
 document.addEventListener('DOMContentLoaded', () => {
   // Authentication Elements
   const authGuestView = document.getElementById('auth-guest-view');
@@ -164,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const response = await fetch('/api/auth/me', {
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
         headers: { 'x-session-token': sessionToken }
       });
 
@@ -284,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
       feedEmpty.classList.add('hidden');
       questionsGrid.classList.add('hidden');
 
-      const response = await fetch('/api/questions');
+      const response = await fetch(`${API_BASE}/api/questions`);
       if (!response.ok) throw new Error('Failed to fetch questions');
 
       const questions = await response.json();
@@ -415,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const headers = { 'Content-Type': 'application/json' };
       if (sessionToken) headers['x-session-token'] = sessionToken;
 
-      const response = await fetch('/api/questions', {
+      const response = await fetch(`${API_BASE}/api/questions`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({ name, question, is_private })
@@ -491,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sessionToken) {
       // Authenticated User flow: Authenticate instantly without prompting password modal!
       try {
-        const response = await fetch(`/api/questions/${id}/like`, {
+        const response = await fetch(`${API_BASE}/api/questions/${id}/like`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -544,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!password || !currentTargetLikeId) return;
 
     try {
-      const response = await fetch(`/api/questions/${currentTargetLikeId}/like`, {
+      const response = await fetch(`${API_BASE}/api/questions/${currentTargetLikeId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
@@ -584,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnLogout) {
     btnLogout.addEventListener('click', async () => {
       try {
-        await fetch('/api/auth/logout', {
+        await fetch(`${API_BASE}/api/auth/logout`, {
           method: 'POST',
           headers: { 'x-session-token': sessionToken }
         });
