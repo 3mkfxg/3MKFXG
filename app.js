@@ -3,7 +3,7 @@
 // ==========================================================================
 
 // ==== API BASE URL =================================================
-const API_BASE = 'https://threemkfxg-imju.onrender.com'; // Render backend URL
+const API_BASE = 'https://threemkfxg-world.onrender.com'; // Render backend URL
 // ====================================================================
 
 // 3MK F X G WORLD - Main Frontend Application Logic (User Auth Integrated)

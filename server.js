@@ -10,6 +10,18 @@ const PORT = process.env.PORT || 3000;
 // CORS - allow requests from GitHub Pages and any browser-hosted front-end
 app.use(cors({
   origin: true, // allow all origins (static site, local dev, GitHub Pages, etc.)
+const express = require('express');
+const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs');
+const cors = require('cors');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// CORS - allow requests from GitHub Pages and any browser-hosted front-end
+app.use(cors({
+  origin: true, // allow all origins (static site, local dev, GitHub Pages, etc.)
   credentials: true,
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-session-token', 'x-admin-key']
@@ -18,7 +30,14 @@ app.options('*', cors()); // handle pre-flight requests
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Auto-detect whether static files are in public/ subfolder or root
+const publicDir = fs.existsSync(path.join(__dirname, 'public', 'index.html'))
+  ? path.join(__dirname, 'public')
+  : __dirname;
+console.log('Serving static files from:', publicDir);
+app.use(express.static(publicDir));
+
 
 
 // Database Drivers Setup
@@ -629,295 +648,6 @@ if (!isFirebase) {
   };
 }
 } // end initDatabase()
-
-// --- MIDDLEWARE FOR USER AUTH ---
-function checkUserAuth(req, res, next) {
-  const token = req.headers['x-session-token'];
-  if (!token) {
-    req.user = null;
-    return next();
-  }
-
-  dbAdapter.getSessionUser(token, (err, user) => {
-    req.user = user;
-    next();
-  });
-}
-
-// --- API AUTH ROUTES ---
-
-// 1. Sign Up (Register with automatically generated high-security password)
-app.post('/api/auth/register', (req, res) => {
-  const { username } = req.body;
-
-  if (!username || typeof username !== 'string' || username.trim() === '') {
-    return res.status(400).json({ error: 'Username is required' });
-  }
-
-  const trimmedUsername = username.trim();
-  const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-  if (!usernameRegex.test(trimmedUsername)) {
-    return res.status(400).json({ error: 'Username must be 3-20 characters and contain only letters, numbers, and underscores' });
-  }
-
-  const securePassword = generateSecurePassword();
-
-  dbAdapter.registerUser(trimmedUsername, securePassword, (err, result) => {
-    if (err) {
-      console.error('Register db error:', err);
-      return res.status(500).json({ error: 'Database error' });
-    }
-    if (result.exists) {
-      return res.status(409).json({ error: 'Username is already taken' });
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
-
-    dbAdapter.createSession(token, result.id, (sessionErr) => {
-      if (sessionErr) {
-        console.error('Session establishment failure:', sessionErr);
-        return res.status(500).json({ error: 'Failed to establish session' });
-      }
-      res.status(201).json({ token, username: trimmedUsername, password: securePassword, role: result.role });
-    });
-  });
-});
-
-// 2. Sign In (Login with direct plain-text comparisons)
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
-  }
-
-  const trimmedUsername = username.trim();
-
-  dbAdapter.loginUser(trimmedUsername, (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    if (!user || password !== user.password) { // plain text match directly
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
-    dbAdapter.createSession(token, user.id, (sessionErr) => {
-      if (sessionErr) {
-        return res.status(500).json({ error: 'Failed to establish session' });
-      }
-      res.json({ token, username: trimmedUsername, role: user.role || 'normal' });
-    });
-  });
-});
-
-// 3. Log Out
-app.post('/api/auth/logout', (req, res) => {
-  const token = req.headers['x-session-token'];
-  if (!token) {
-    return res.json({ success: true });
-  }
-
-  dbAdapter.deleteSession(token, () => {
-    res.json({ success: true });
-  });
-});
-
-// 4. Get Current User Profile (me)
-app.get('/api/auth/me', checkUserAuth, (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Unauthenticated' });
-  }
-  res.json({ id: req.user.id, username: req.user.username, role: req.user.role });
-});
-
-// 5. Get Logged-in User's own submissions
-app.get('/api/user/whispers', checkUserAuth, (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Unauthenticated' });
-  }
-
-  dbAdapter.getUserSubmissions(req.user.id, (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch user whispers' });
-    }
-    res.json(rows);
-  });
-});
-
-// --- CORE QUESTIONS API ---
-
-// 1. Submit a question
-app.post('/api/questions', checkUserAuth, (req, res) => {
-  const { name, question } = req.body;
-
-  if (!question || typeof question !== 'string' || question.trim() === '') {
-    return res.status(400).json({ error: 'Question is required' });
-  }
-
-  const trimmedQuestion = question.trim();
-  if (trimmedQuestion.length > 300) {
-    return res.status(400).json({ error: 'Question must be 300 characters or less' });
-  }
-
-  const isPrivateVal = (req.body.is_private === true || req.body.is_private === 1 || req.body.is_private === '1') ? 1 : 0;
-
-  if (req.user) {
-    const trimmedName = req.user.username;
-    const dummyPassword = generatePassword();
-    const password_sha256 = getSha256(dummyPassword);
-
-    dbAdapter.createSubmission(trimmedName, trimmedQuestion, dummyPassword, password_sha256, isPrivateVal, req.user.id, (err, insertId) => {
-      if (err) {
-        console.error('Database insert error:', err);
-        return res.status(500).json({ error: 'Failed to save question' });
-      }
-
-      res.status(201).json({
-        id: insertId,
-        authenticated: true,
-        message: 'Question submitted successfully'
-      });
-    });
-  } else {
-    if (!name || typeof name !== 'string' || name.trim() === '') {
-      return res.status(400).json({ error: 'Name is required for anonymous posts' });
-    }
-    const trimmedName = name.trim();
-    if (trimmedName.length > 50) {
-      return res.status(400).json({ error: 'Name must be 50 characters or less' });
-    }
-
-    const password = generatePassword();
-    const password_sha256 = getSha256(password);
-
-    dbAdapter.createSubmission(trimmedName, trimmedQuestion, password, password_sha256, isPrivateVal, null, (err, insertId) => {
-      if (err) {
-        console.error('Database insert error:', err);
-        return res.status(500).json({ error: 'Failed to save question' });
-      }
-
-      res.status(201).json({
-        id: insertId,
-        password: password,
-        authenticated: false,
-        message: 'Question submitted successfully'
-      });
-    });
-  }
-});
-
-// 2. Get all questions (Public display)
-app.get('/api/questions', checkUserAuth, (req, res) => {
-  const userId = req.user ? req.user.id : null;
-  dbAdapter.getPublicSubmissions(userId, (err, rows) => {
-    if (err) {
-      console.error('Database query error:', err);
-      return res.status(500).json({ error: 'Failed to retrieve questions' });
-    }
-    res.json(rows);
-  });
-});
-
-// 3. Like a question (Supports anonymous password or authenticated session)
-app.post('/api/questions/:id/like', checkUserAuth, (req, res) => {
-  const { id } = req.params;
-
-  if (req.user) {
-    const userId = req.user.id;
-    const userVoteHash = getSha256(`user_${userId}`);
-
-    dbAdapter.registerLike(id, userVoteHash, userId, (err, newCount) => {
-      if (err) {
-        return res.status(400).json({ error: err.message });
-      }
-      res.json({ success: true, likes: newCount });
-    });
-  } else {
-    const { password } = req.body;
-    if (!password || typeof password !== 'string') {
-      return res.status(400).json({ error: 'Password is required' });
-    }
-
-    const password_sha256 = getSha256(password.trim());
-
-    dbAdapter.checkSubmissionPassword(id, password_sha256, (err, submission) => {
-      if (err || !submission) {
-        return res.status(401).json({ error: 'Invalid password. Submit a question to get a password.' });
-      }
-
-      // Match plain-text directly as requested
-      if (password.trim() !== submission.password) {
-        return res.status(401).json({ error: 'Invalid password.' });
-      }
-
-      dbAdapter.registerLike(id, password_sha256, null, (likeErr, newCount) => {
-        if (likeErr) {
-          return res.status(400).json({ error: likeErr.message });
-        }
-        res.json({ success: true, likes: newCount });
-      });
-    });
-  }
-});
-
-// --- SECURE ADMIN ENDPOINTS (3MKFXG Dashboards) ---
-const ADMIN_SECRET_KEY = '3mkfxgadmin';
-
-// Gated middleware check supporting EITHER standard passcode OR verified user admin session!
-function checkAdminAuth(req, res, next) {
-  const key = req.headers['x-admin-key'] || req.query.key;
-  if (key && key === ADMIN_SECRET_KEY) {
-    return next();
-  }
-
-  const token = req.headers['x-session-token'] || req.query.token;
-  if (token) {
-    dbAdapter.getSessionUser(token, (err, user) => {
-      if (user && user.role === 'admin') {
-        req.adminUser = user;
-        return next();
-      }
-      return res.status(401).json({ error: 'Unauthorized. Admin role credentials required.' });
-    });
-  } else {
-    return res.status(401).json({ error: 'Unauthorized. Admin passcode or active session token required.' });
-  }
-}
-
-// 1. Get ALL questions (both public & private, revealing submitter names)
-app.get('/api/admin/questions', checkAdminAuth, (req, res) => {
-  dbAdapter.getAdminSubmissions((err, rows) => {
-    if (err) {
-      console.error('Admin query error:', err);
-      return res.status(500).json({ error: 'Failed to retrieve admin messages' });
-    }
-    res.json(rows);
-  });
-});
-
-// 2. Delete a question completely
-app.delete('/api/admin/questions/:id', checkAdminAuth, (req, res) => {
-  const { id } = req.params;
-  dbAdapter.deleteSubmission(id, (err) => {
-    if (err) {
-      console.error('Admin delete error:', err);
-      return res.status(500).json({ error: 'Failed to delete message' });
-    }
-    res.json({ success: true, message: 'Message deleted successfully' });
-  });
-});
-
-// Serve frontend routing (fallback for single-page apps)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Start server only after database is ready
-initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Database mode: ${isFirebase ? 'Firebase Firestore' : 'SQLite'}`);
   });
 }).catch(err => {
   console.error('Fatal: could not initialize database:', err);
