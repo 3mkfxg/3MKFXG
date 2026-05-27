@@ -2,13 +2,24 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS - allow requests from GitHub Pages and any browser-hosted front-end
+app.use(cors({
+  origin: true, // allow all origins (static site, local dev, GitHub Pages, etc.)
+  credentials: true,
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-session-token', 'x-admin-key']
+}));
+app.options('*', cors()); // handle pre-flight requests
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 // Database Drivers Setup
 const dbPath = path.join(__dirname, 'database.sqlite');

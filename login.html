@@ -261,6 +261,10 @@
   <!-- Scripts -->
   <script src="matrix.js"></script>
   <script>
+    // ==== API BASE URL =====================================================
+    const API_BASE = 'https://threemkfxg-imju.onrender.com';
+    // =======================================================================
+
     document.addEventListener('DOMContentLoaded', () => {
       // Elements
       const authPortalForms = document.getElementById('auth-portal-forms');
@@ -336,7 +340,7 @@
         const password = loginPass.value;
 
         try {
-          const response = await fetch('/api/auth/login', {
+          const response = await fetch(`${API_BASE}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -362,7 +366,7 @@
         const username = signupUser.value.trim();
 
         try {
-          const response = await fetch('/api/auth/register', {
+          const response = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username })

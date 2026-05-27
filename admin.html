@@ -253,6 +253,10 @@
   <!-- Scripts -->
   <script src="matrix.js"></script>
   <script>
+    // ==== API BASE URL =====================================================
+    const API_BASE = 'https://threemkfxg-imju.onrender.com';
+    // =======================================================================
+
     document.addEventListener('DOMContentLoaded', () => {
       // Elements
       const adminGate = document.getElementById('admin-gate');
@@ -307,7 +311,7 @@
         if (!password) return;
 
         try {
-            const loginResp = await fetch('/api/auth/login', {
+            const loginResp = await fetch(`${API_BASE}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: '3mkfxg', password })
@@ -329,7 +333,7 @@
       btnLogout.addEventListener('click', async () => {
         if (sessionToken) {
           try {
-            await fetch('/api/auth/logout', {
+            await fetch(`${API_BASE}/api/auth/logout`, {
               method: 'POST',
               headers: { 'x-session-token': sessionToken }
             });
@@ -369,7 +373,7 @@
             headers['x-admin-key'] = key;
           }
 
-          const response = await fetch('/api/admin/questions', { headers });
+          const response = await fetch(`${API_BASE}/api/admin/questions`, { headers });
 
           if (!response.ok) {
             const data = await response.json();
@@ -468,7 +472,7 @@
             headers['x-admin-key'] = adminKey;
           }
 
-          const response = await fetch(`/api/admin/questions/${id}`, {
+          const response = await fetch(`${API_BASE}/api/admin/questions/${id}`, {
             method: 'DELETE',
             headers: headers
           });
@@ -506,7 +510,7 @@
         if (sessionToken) {
           try {
             // Verify session token identity and check if user has admin role
-            const response = await fetch('/api/auth/me', {
+            const response = await fetch(`${API_BASE}/api/auth/me`, {
               headers: { 'x-session-token': sessionToken }
             });
             if (response.ok) {
