@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -70,16 +70,26 @@ function getSha256(text) {
 }
 
 // --- DUAL DATABASE INITIALIZATION ---
+// We wrap init in an async function so we can await a Firestore ping test
+async function initDatabase() {
+
 if (fs.existsSync(firebaseKeyPath)) {
   try {
     const admin = require('firebase-admin');
     const serviceAccount = require(firebaseKeyPath);
     
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+    // Only init if no app exists already
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    }
     
     const firestore = admin.firestore();
+    
+    // ---- PING TEST: verify Firestore is actually reachable ----
+    await firestore.collection('_ping').limit(1).get();
+    // If we reach here, Firestore is working
     isFirebase = true;
     console.log('--------------------------------------------------');
     console.log('🚀 FIREBASE ACTIVE: Connected to Cloud Firestore!');
@@ -367,7 +377,7 @@ if (fs.existsSync(firebaseKeyPath)) {
       }
     };
   } catch (err) {
-    console.error('Firebase Admin init error, falling back to SQLite:', err.message);
+    console.error('Firebase init/ping failed, falling back to SQLite:', err.message);
     isFirebase = false;
   }
 }
@@ -618,6 +628,7 @@ if (!isFirebase) {
     }
   };
 }
+} // end initDatabase()
 
 // --- MIDDLEWARE FOR USER AUTH ---
 function checkUserAuth(req, res, next) {
@@ -902,6 +913,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Start server only after database is ready
+initDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Database mode: ${isFirebase ? 'Firebase Firestore' : 'SQLite'}`);
+  });
+}).catch(err => {
+  console.error('Fatal: could not initialize database:', err);
+  process.exit(1);
 });
