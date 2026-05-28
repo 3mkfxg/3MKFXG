@@ -450,6 +450,21 @@ async function initDatabase() {
                 .catch(err => callback(err));
             })
             .catch(err => callback(err));
+        },
+
+        deleteUser: (username, callback) => {
+          const batch = firestore.batch();
+          const userRef = firestore.collection('users').doc(username);
+          batch.delete(userRef);
+
+          firestore.collection('sessions').where('user_id', '==', username).get()
+            .then(snapshot => {
+              snapshot.docs.forEach(doc => batch.delete(doc.ref));
+              batch.commit()
+                .then(() => callback(null))
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
         }
       };
     } catch (err) {
@@ -750,6 +765,21 @@ async function initDatabase() {
         updateUserPassword: (username, newPassword, callback) => {
           db.run('UPDATE users SET password = ? WHERE username = ?', [newPassword, username], (err) => {
             callback(err || null);
+          });
+        },
+
+        deleteUser: (username, callback) => {
+          db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
+            if (err) return callback(err);
+            if (!row) return callback(null);
+
+            const userId = row.id;
+            db.serialize(() => {
+              db.run('DELETE FROM users WHERE id = ?', [userId]);
+              db.run('DELETE FROM sessions WHERE user_id = ?', [userId], (deleteErr) => {
+                callback(deleteErr || null);
+              });
+            });
           });
         }
       };
@@ -1079,6 +1109,23 @@ app.post('/api/admin/users/:username/password', checkAdminAuth, (req, res) => {
       return res.status(500).json({ error: 'Failed to update user password' });
     }
     res.json({ success: true, message: `Password for @${username} updated successfully` });
+  });
+});
+
+// 6. Delete a user completely
+app.delete('/api/admin/users/:username', checkAdminAuth, (req, res) => {
+  const { username } = req.params;
+
+  if (username.toLowerCase() === '3mkfxg') {
+    return res.status(403).json({ error: 'Master Admin account cannot be deleted' });
+  }
+
+  dbAdapter.deleteUser(username, (err) => {
+    if (err) {
+      console.error('Admin delete user error:', err);
+      return res.status(500).json({ error: 'Failed to delete user' });
+    }
+    res.json({ success: true, message: `User @${username} deleted successfully` });
   });
 });
 

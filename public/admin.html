@@ -760,9 +760,16 @@
             <td class="user-pass-cell" style="padding: 14px 20px; font-family: monospace; color: #fbbf24; font-weight: 600;">${escapeHTML(user.password)}</td>
             <td style="padding: 14px 20px; color: #9ca3af;">${date}</td>
             <td style="padding: 14px 20px;">
-              <button class="btn-edit-password" data-username="${escapeHTML(user.username)}" data-password="${escapeHTML(user.password)}" style="background: rgba(0, 255, 102, 0.1); border: 1px solid rgba(0, 255, 102, 0.2); color: #00ff66; font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;">
-                <i class="fa-solid fa-key"></i> Change
-              </button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-edit-password" data-username="${escapeHTML(user.username)}" data-password="${escapeHTML(user.password)}" style="background: rgba(0, 255, 102, 0.1); border: 1px solid rgba(0, 255, 102, 0.2); color: #00ff66; font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;">
+                  <i class="fa-solid fa-key"></i> Change
+                </button>
+                ${user.username.toLowerCase() !== '3mkfxg' ? `
+                <button class="btn-delete-user" data-username="${escapeHTML(user.username)}" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;">
+                  <i class="fa-regular fa-trash-can"></i> Delete
+                </button>
+                ` : ''}
+              </div>
             </td>
           `;
           usersTableBody.appendChild(tr);
@@ -774,6 +781,16 @@
             const username = btn.getAttribute('data-username');
             const currentPassword = btn.getAttribute('data-password');
             await changePassword(username, currentPassword, btn);
+          });
+        });
+
+        // Delete user event listeners
+        document.querySelectorAll('.btn-delete-user').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const username = btn.getAttribute('data-username');
+            if (confirm(`Are you absolutely sure you want to delete user @${username} completely? This will also end all of their active login sessions.`)) {
+              await deleteUserAccount(username, btn);
+            }
           });
         });
       }
@@ -812,6 +829,55 @@
           btnEl.setAttribute('data-password', trimmed);
 
           showToast(`Password for @${username} changed successfully!`);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+
+      async function deleteUserAccount(username, btnEl) {
+        try {
+          const headers = {};
+          if (sessionToken) {
+            headers['x-session-token'] = sessionToken;
+          } else {
+            headers['x-admin-key'] = adminKey;
+          }
+
+          const response = await fetch(`${API_BASE}/api/admin/users/${username}`, {
+            method: 'DELETE',
+            headers: headers
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to delete user');
+
+          // Smooth fade-out of the table row
+          const tr = btnEl.closest('tr');
+          if (tr) {
+            tr.style.transition = 'all 0.4s ease';
+            tr.style.opacity = '0';
+            tr.style.transform = 'translateX(20px)';
+            setTimeout(() => {
+              tr.remove();
+              // Update badge count
+              const remainingRows = usersTableBody.querySelectorAll('tr');
+              const activeCount = Array.from(remainingRows).filter(row => !row.innerHTML.includes('fa-user-slash')).length;
+              usersCountBadge.innerText = `${activeCount} user${activeCount !== 1 ? 's' : ''}`;
+              
+              if (activeCount === 0) {
+                usersTableBody.innerHTML = `
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: #9ca3af; padding: 30px;">
+                      <i class="fa-solid fa-user-slash" style="font-size: 2rem; margin-bottom: 10px; display: block; opacity: 0.5;"></i>
+                      No registered users found.
+                    </td>
+                  </tr>
+                `;
+              }
+            }, 400);
+          }
+
+          showToast(`User @${username} deleted successfully!`);
         } catch (err) {
           showToast(err.message, 'error');
         }
