@@ -52,20 +52,20 @@ function generateSecurePassword() {
   const numbers = '0123456789';
   const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
   const allChars = uppercase + lowercase + numbers + special;
-  
+
   const len = Math.floor(Math.random() * 3) + 14; // 14, 15, or 16 characters
   let result = '';
-  
+
   // Guarantee at least one of each class is present
   result += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
   result += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
   result += numbers.charAt(Math.floor(Math.random() * numbers.length));
   result += special.charAt(Math.floor(Math.random() * special.length));
-  
+
   for (let i = 4; i < len; i++) {
     result += allChars.charAt(Math.floor(Math.random() * allChars.length));
   }
-  
+
   // Shuffle characters to ensure completely random layout
   return result.split('').sort(() => 0.5 - Math.random()).join('');
 }
@@ -81,393 +81,406 @@ async function initDatabase() {
     try {
       const admin = require('firebase-admin');
       const serviceAccount = require(firebaseKeyPath);
-      
+
       // Only init if no app exists already
       if (!admin.apps.length) {
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount)
         });
       }
-      
+
       const firestore = admin.firestore();
-      
+
       // ---- PING TEST: verify Firestore is actually reachable with a 2-second timeout ----
       const pingPromise = firestore.collection('_ping').limit(1).get();
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Firestore ping timeout (2s)')), 2000)
       );
       await Promise.race([pingPromise, timeoutPromise]);
       // If we reach here, Firestore is working
       isFirebase = true;
-    console.log('--------------------------------------------------');
-    console.log('🚀 FIREBASE ACTIVE: Connected to Cloud Firestore!');
-    console.log('🔒 SECURITY ACTIVE: Keys are fully isolated on server.');
-    console.log('🔓 AUTH PASSWORDS: Raw plain-text storage (no hashes).');
-    console.log('🛡️ USER ROLES ACTIVE: Auto-promote @3mkfxg as Admin.');
-    console.log('--------------------------------------------------');
-
-    dbAdapter = {
-      // 1. User registrations
-      registerUser: (username, password, callback) => {
-        const userDocRef = firestore.collection('users').doc(username);
-        
-        userDocRef.get()
-          .then(doc => {
-            if (doc.exists) {
-              return callback(null, { exists: true });
-            }
-
-            // Auto-promote 3mkfxg to admin role
-            const role = (username.toLowerCase() === '3mkfxg') ? 'admin' : 'normal';
-
-            userDocRef.set({
-              username,
-              password, // plain text
-              role,
-              created_at: new Date().toISOString()
-            })
-            .then(() => {
-              callback(null, { exists: false, id: username, role });
-            })
-            .catch(err => callback(err));
-          })
-          .catch(err => callback(err));
-      },
-
-      // 2. User logins
-      loginUser: (username, callback) => {
-        firestore.collection('users').doc(username).get()
-          .then(doc => {
-            if (!doc.exists) {
-              return callback(null, null);
-            }
-            callback(null, { id: doc.id, ...doc.data() });
-          })
-          .catch(err => callback(err));
-      },
-
-      // 3. Session tracking
-      createSession: (token, userId, callback) => {
-        firestore.collection('sessions').doc(token).set({
-          user_id: userId,
-          created_at: new Date().toISOString()
-        })
-        .then(() => callback(null))
-        .catch(err => callback(err));
-      },
-
-      deleteSession: (token, callback) => {
-        firestore.collection('sessions').doc(token).delete()
-          .then(() => callback(null))
-          .catch(err => callback(err));
-      },
-
-      getSessionUser: (token, callback) => {
-        firestore.collection('sessions').doc(token).get()
-          .then(doc => {
-            if (!doc.exists) {
-              return callback(null, null);
-            }
-            const session = doc.data();
-            firestore.collection('users').doc(session.user_id).get()
-              .then(userDoc => {
-                if (!userDoc.exists) {
-                  return callback(null, null);
-                }
-                const userData = userDoc.data();
-                callback(null, { id: userDoc.id, username: userData.username, role: userData.role || 'normal' });
-              })
-              .catch(err => callback(err));
-          })
-          .catch(err => callback(err));
-      },
-
-      // 4. Submissions logic
-      createSubmission: (name, question, password, passwordSha256, isPrivate, userId, callback) => {
-        firestore.collection('submissions').add({
-          name,
-          question,
-          password, // plain text
-          password_sha256: passwordSha256,
-          is_private: isPrivate,
-          user_id: userId || null,
-          created_at: new Date().toISOString()
-        })
-        .then(docRef => {
-          callback(null, docRef.id);
-        })
-        .catch(err => callback(err));
-      },
-
-      getPublicSubmissions: (userId, callback) => {
-        firestore.collection('submissions')
-          .where('is_private', '==', 0)
-          .get()
-          .then(snapshot => {
-            const submissions = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-
-            submissions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-            if (submissions.length === 0) {
-              return callback(null, []);
-            }
-
-            // Fetch likes
-            firestore.collection('likes').get()
-              .then(likeSnapshot => {
-                const likeCounts = {};
-                likeSnapshot.docs.forEach(doc => {
-                  const data = doc.data();
-                  likeCounts[data.submission_id] = (likeCounts[data.submission_id] || 0) + 1;
-                });
-
-                const result = submissions.map(s => ({
-                  id: s.id,
-                  name: s.name,
-                  question: s.question,
-                  created_at: s.created_at,
-                  likes: likeCounts[s.id] || 0,
-                  is_own: s.user_id === userId ? 1 : 0
-                }));
-
-                callback(null, result);
-              })
-              .catch(err => callback(err));
-          })
-          .catch(err => callback(err));
-      },
-
-      getUserSubmissions: (userId, callback) => {
-        firestore.collection('submissions')
-          .where('user_id', '==', userId)
-          .get()
-          .then(snapshot => {
-            const submissions = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-
-            submissions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-            if (submissions.length === 0) {
-              return callback(null, []);
-            }
-
-            firestore.collection('likes').get()
-              .then(likeSnapshot => {
-                const likeCounts = {};
-                likeSnapshot.docs.forEach(doc => {
-                  const data = doc.data();
-                  likeCounts[data.submission_id] = (likeCounts[data.submission_id] || 0) + 1;
-                });
-
-                const result = submissions.map(s => ({
-                  id: s.id,
-                  question: s.question,
-                  is_private: s.is_private,
-                  created_at: s.created_at,
-                  likes: likeCounts[s.id] || 0
-                }));
-
-                callback(null, result);
-              })
-              .catch(err => callback(err));
-          })
-          .catch(err => callback(err));
-      },
-
-      // 5. Likes tracking
-      registerLike: (submissionId, passwordUsedSha256, userId, callback) => {
-        const docId = `${submissionId}_${passwordUsedSha256}`;
-        const likesRef = firestore.collection('likes').doc(docId);
-
-        likesRef.get()
-          .then(doc => {
-            if (doc.exists) {
-              return callback(new Error('You have already liked this message'));
-            }
-            likesRef.set({
-              submission_id: submissionId,
-              password_used_sha256: passwordUsedSha256,
-              user_id: userId || null,
-              created_at: new Date().toISOString()
-            })
-            .then(() => {
-              firestore.collection('likes').where('submission_id', '==', submissionId).get()
-                .then(snap => {
-                  callback(null, snap.size);
-                })
-                .catch(err => callback(null, null));
-            })
-            .catch(err => callback(err));
-          })
-          .catch(err => callback(err));
-      },
-
-      checkSubmissionPassword: (submissionId, passwordSha256, callback) => {
-        firestore.collection('submissions').doc(submissionId).get()
-          .then(doc => {
-            if (!doc.exists) {
-              return callback(null, null);
-            }
-            callback(null, doc.data());
-          })
-          .catch(err => callback(err));
-      },
-
-      // 6. Admin methods
-      getAdminSubmissions: (callback) => {
-        firestore.collection('submissions').get()
-          .then(snapshot => {
-            const submissions = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-
-            submissions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-            if (submissions.length === 0) {
-              return callback(null, []);
-            }
-
-            // Fetch users for verified flags
-            firestore.collection('users').get()
-              .then(userSnapshot => {
-                const users = {};
-                userSnapshot.docs.forEach(doc => {
-                  users[doc.id] = doc.data().username;
-                });
-
-                firestore.collection('likes').get()
-                  .then(likeSnapshot => {
-                    const likeCounts = {};
-                    likeSnapshot.docs.forEach(doc => {
-                      const data = doc.data();
-                      likeCounts[data.submission_id] = (likeCounts[data.submission_id] || 0) + 1;
-                    });
-
-                    const result = submissions.map(s => ({
-                      id: s.id,
-                      name: s.name,
-                      question: s.question,
-                      is_private: s.is_private,
-                      created_at: s.created_at,
-                      likes: likeCounts[s.id] || 0,
-                      registered_user: s.user_id ? (users[s.user_id] || null) : null
-                    }));
-
-                    callback(null, result);
-                  })
-                  .catch(err => callback(err));
-              })
-              .catch(err => callback(err));
-          })
-          .catch(err => callback(err));
-      },
-
-      deleteSubmission: (submissionId, callback) => {
-        firestore.collection('submissions').doc(submissionId).delete()
-          .then(() => {
-            firestore.collection('likes').where('submission_id', '==', submissionId).get()
-              .then(snapshot => {
-                const batch = firestore.batch();
-                snapshot.docs.forEach(doc => batch.delete(doc.ref));
-                batch.commit()
-                  .then(() => callback(null))
-                  .catch(err => callback(err));
-              })
-              .catch(err => callback(err));
-          })
-          .catch(err => callback(err));
-      },
-
-      getAllUsers: (callback) => {
-        firestore.collection('users').get()
-          .then(snapshot => {
-            const users = snapshot.docs.map(doc => ({
-              id: doc.id,
-              username: doc.data().username,
-              role: doc.data().role || 'normal',
-              created_at: doc.data().created_at
-            }));
-            users.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            callback(null, users);
-          })
-          .catch(err => callback(err));
-      },
-
-      updateSubmissionLikes: (submissionId, newCount, callback) => {
-        const likesRef = firestore.collection('likes').where('submission_id', '==', submissionId);
-        likesRef.get()
-          .then(snapshot => {
-            const currentCount = snapshot.size;
-
-            if (newCount === currentCount) {
-              return callback(null);
-            }
-
-            if (newCount > currentCount) {
-              const batch = firestore.batch();
-              for (let i = currentCount; i < newCount; i++) {
-                const dummyHash = getSha256(`dummy_${submissionId}_${i}_${Math.random()}`);
-                const docId = `${submissionId}_${dummyHash}`;
-                const ref = firestore.collection('likes').doc(docId);
-                batch.set(ref, {
-                  submission_id: submissionId,
-                  password_used_sha256: dummyHash,
-                  user_id: null,
-                  created_at: new Date().toISOString()
-                });
-              }
-              batch.commit()
-                .then(() => callback(null))
-                .catch(err => callback(err));
-            } else {
-              const batch = firestore.batch();
-              const docsToDelete = snapshot.docs.slice(0, currentCount - newCount);
-              docsToDelete.forEach(doc => {
-                batch.delete(doc.ref);
-              });
-              batch.commit()
-                .then(() => callback(null))
-                .catch(err => callback(err));
-            }
-          })
-          .catch(err => callback(err));
-      }
-    };
-  } catch (err) {
-    console.error('Firebase init/ping failed, falling back to SQLite:', err.message);
-    isFirebase = false;
-  }
-}
-
-// Fallback database configuration (SQLite)
-if (!isFirebase) {
-  return new Promise((resolve, reject) => {
-    const sqlite3 = require('sqlite3').verbose();
-    const db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        console.error('Error opening SQLite database:', err.message);
-        reject(err);
-      } else {
       console.log('--------------------------------------------------');
-      console.log('💾 SQLITE ACTIVE: Connected to Local SQLite Database!');
-      console.log('💡 TIP: Drop "firebase-key.json" in root folder to auto-upgrade to Firebase Cloud!');
+      console.log('🚀 FIREBASE ACTIVE: Connected to Cloud Firestore!');
+      console.log('🔒 SECURITY ACTIVE: Keys are fully isolated on server.');
       console.log('🔓 AUTH PASSWORDS: Raw plain-text storage (no hashes).');
       console.log('🛡️ USER ROLES ACTIVE: Auto-promote @3mkfxg as Admin.');
       console.log('--------------------------------------------------');
-      initializeSQLiteDatabase();
-    }
-  });
 
-  function initializeSQLiteDatabase() {
-    db.serialize(() => {
-      // 1. Users
-      db.run(`
+      dbAdapter = {
+        // 1. User registrations
+        registerUser: (username, password, callback) => {
+          const userDocRef = firestore.collection('users').doc(username);
+
+          userDocRef.get()
+            .then(doc => {
+              if (doc.exists) {
+                return callback(null, { exists: true });
+              }
+
+              // Auto-promote 3mkfxg to admin role
+              const role = (username.toLowerCase() === '3mkfxg') ? 'admin' : 'normal';
+
+              userDocRef.set({
+                username,
+                password, // plain text
+                role,
+                created_at: new Date().toISOString()
+              })
+                .then(() => {
+                  callback(null, { exists: false, id: username, role });
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        // 2. User logins
+        loginUser: (username, callback) => {
+          firestore.collection('users').doc(username).get()
+            .then(doc => {
+              if (!doc.exists) {
+                return callback(null, null);
+              }
+              callback(null, { id: doc.id, ...doc.data() });
+            })
+            .catch(err => callback(err));
+        },
+
+        // 3. Session tracking
+        createSession: (token, userId, callback) => {
+          firestore.collection('sessions').doc(token).set({
+            user_id: userId,
+            created_at: new Date().toISOString()
+          })
+            .then(() => callback(null))
+            .catch(err => callback(err));
+        },
+
+        deleteSession: (token, callback) => {
+          firestore.collection('sessions').doc(token).delete()
+            .then(() => callback(null))
+            .catch(err => callback(err));
+        },
+
+        getSessionUser: (token, callback) => {
+          firestore.collection('sessions').doc(token).get()
+            .then(doc => {
+              if (!doc.exists) {
+                return callback(null, null);
+              }
+              const session = doc.data();
+              firestore.collection('users').doc(session.user_id).get()
+                .then(userDoc => {
+                  if (!userDoc.exists) {
+                    return callback(null, null);
+                  }
+                  const userData = userDoc.data();
+                  callback(null, { id: userDoc.id, username: userData.username, role: userData.role || 'normal' });
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        // 4. Submissions logic
+        createSubmission: (name, question, password, passwordSha256, isPrivate, userId, callback) => {
+          firestore.collection('submissions').add({
+            name,
+            question,
+            password, // plain text
+            password_sha256: passwordSha256,
+            is_private: isPrivate,
+            user_id: userId || null,
+            created_at: new Date().toISOString()
+          })
+            .then(docRef => {
+              callback(null, docRef.id);
+            })
+            .catch(err => callback(err));
+        },
+
+        getPublicSubmissions: (userId, callback) => {
+          firestore.collection('submissions')
+            .where('is_private', '==', 0)
+            .get()
+            .then(snapshot => {
+              const submissions = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+
+              submissions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              if (submissions.length === 0) {
+                return callback(null, []);
+              }
+
+              // Fetch likes
+              firestore.collection('likes').get()
+                .then(likeSnapshot => {
+                  const likeCounts = {};
+                  likeSnapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    likeCounts[data.submission_id] = (likeCounts[data.submission_id] || 0) + 1;
+                  });
+
+                  const result = submissions.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    question: s.question,
+                    created_at: s.created_at,
+                    likes: likeCounts[s.id] || 0,
+                    is_own: s.user_id === userId ? 1 : 0
+                  }));
+
+                  callback(null, result);
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        getUserSubmissions: (userId, callback) => {
+          firestore.collection('submissions')
+            .where('user_id', '==', userId)
+            .get()
+            .then(snapshot => {
+              const submissions = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+
+              submissions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              if (submissions.length === 0) {
+                return callback(null, []);
+              }
+
+              firestore.collection('likes').get()
+                .then(likeSnapshot => {
+                  const likeCounts = {};
+                  likeSnapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    likeCounts[data.submission_id] = (likeCounts[data.submission_id] || 0) + 1;
+                  });
+
+                  const result = submissions.map(s => ({
+                    id: s.id,
+                    question: s.question,
+                    is_private: s.is_private,
+                    created_at: s.created_at,
+                    likes: likeCounts[s.id] || 0
+                  }));
+
+                  callback(null, result);
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        // 5. Likes tracking
+        registerLike: (submissionId, passwordUsedSha256, userId, callback) => {
+          const docId = `${submissionId}_${passwordUsedSha256}`;
+          const likesRef = firestore.collection('likes').doc(docId);
+
+          likesRef.get()
+            .then(doc => {
+              if (doc.exists) {
+                return callback(new Error('You have already liked this message'));
+              }
+              likesRef.set({
+                submission_id: submissionId,
+                password_used_sha256: passwordUsedSha256,
+                user_id: userId || null,
+                created_at: new Date().toISOString()
+              })
+                .then(() => {
+                  firestore.collection('likes').where('submission_id', '==', submissionId).get()
+                    .then(snap => {
+                      callback(null, snap.size);
+                    })
+                    .catch(err => callback(null, null));
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        checkSubmissionPassword: (submissionId, passwordSha256, callback) => {
+          firestore.collection('submissions').doc(submissionId).get()
+            .then(doc => {
+              if (!doc.exists) {
+                return callback(null, null);
+              }
+              callback(null, doc.data());
+            })
+            .catch(err => callback(err));
+        },
+
+        // 6. Admin methods
+        getAdminSubmissions: (callback) => {
+          firestore.collection('submissions').get()
+            .then(snapshot => {
+              const submissions = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+
+              submissions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              if (submissions.length === 0) {
+                return callback(null, []);
+              }
+
+              // Fetch users for verified flags
+              firestore.collection('users').get()
+                .then(userSnapshot => {
+                  const users = {};
+                  userSnapshot.docs.forEach(doc => {
+                    users[doc.id] = doc.data().username;
+                  });
+
+                  firestore.collection('likes').get()
+                    .then(likeSnapshot => {
+                      const likeCounts = {};
+                      likeSnapshot.docs.forEach(doc => {
+                        const data = doc.data();
+                        likeCounts[data.submission_id] = (likeCounts[data.submission_id] || 0) + 1;
+                      });
+
+                      const result = submissions.map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        question: s.question,
+                        is_private: s.is_private,
+                        created_at: s.created_at,
+                        likes: likeCounts[s.id] || 0,
+                        registered_user: s.user_id ? (users[s.user_id] || null) : null
+                      }));
+
+                      callback(null, result);
+                    })
+                    .catch(err => callback(err));
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        deleteSubmission: (submissionId, callback) => {
+          firestore.collection('submissions').doc(submissionId).delete()
+            .then(() => {
+              firestore.collection('likes').where('submission_id', '==', submissionId).get()
+                .then(snapshot => {
+                  const batch = firestore.batch();
+                  snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                  batch.commit()
+                    .then(() => callback(null))
+                    .catch(err => callback(err));
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        getAllUsers: (callback) => {
+          firestore.collection('users').get()
+            .then(snapshot => {
+              const users = snapshot.docs.map(doc => ({
+                id: doc.id,
+                username: doc.data().username,
+                password: doc.data().password,
+                role: doc.data().role || 'normal',
+                created_at: doc.data().created_at
+              }));
+              users.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              callback(null, users);
+            })
+            .catch(err => callback(err));
+        },
+
+        updateSubmissionLikes: (submissionId, newCount, callback) => {
+          const likesRef = firestore.collection('likes').where('submission_id', '==', submissionId);
+          likesRef.get()
+            .then(snapshot => {
+              const currentCount = snapshot.size;
+
+              if (newCount === currentCount) {
+                return callback(null);
+              }
+
+              if (newCount > currentCount) {
+                const batch = firestore.batch();
+                for (let i = currentCount; i < newCount; i++) {
+                  const dummyHash = getSha256(`dummy_${submissionId}_${i}_${Math.random()}`);
+                  const docId = `${submissionId}_${dummyHash}`;
+                  const ref = firestore.collection('likes').doc(docId);
+                  batch.set(ref, {
+                    submission_id: submissionId,
+                    password_used_sha256: dummyHash,
+                    user_id: null,
+                    created_at: new Date().toISOString()
+                  });
+                }
+                batch.commit()
+                  .then(() => callback(null))
+                  .catch(err => callback(err));
+              } else {
+                const batch = firestore.batch();
+                const docsToDelete = snapshot.docs.slice(0, currentCount - newCount);
+                docsToDelete.forEach(doc => {
+                  batch.delete(doc.ref);
+                });
+                batch.commit()
+                  .then(() => callback(null))
+                  .catch(err => callback(err));
+              }
+            })
+            .catch(err => callback(err));
+        },
+
+        updateUserPassword: (username, newPassword, callback) => {
+          firestore.collection('users').where('username', '==', username).get()
+            .then(snapshot => {
+              if (snapshot.empty) return callback(new Error('User not found'));
+              const docId = snapshot.docs[0].id;
+              firestore.collection('users').doc(docId).update({ password: newPassword })
+                .then(() => callback(null))
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        }
+      };
+    } catch (err) {
+      console.error('Firebase init/ping failed, falling back to SQLite:', err.message);
+      isFirebase = false;
+    }
+  }
+
+  // Fallback database configuration (SQLite)
+  if (!isFirebase) {
+    return new Promise((resolve, reject) => {
+      const sqlite3 = require('sqlite3').verbose();
+      const db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+          console.error('Error opening SQLite database:', err.message);
+          reject(err);
+        } else {
+          console.log('--------------------------------------------------');
+          console.log('💾 SQLITE ACTIVE: Connected to Local SQLite Database!');
+          console.log('💡 TIP: Drop "firebase-key.json" in root folder to auto-upgrade to Firebase Cloud!');
+          console.log('🔓 AUTH PASSWORDS: Raw plain-text storage (no hashes).');
+          console.log('🛡️ USER ROLES ACTIVE: Auto-promote @3mkfxg as Admin.');
+          console.log('--------------------------------------------------');
+          initializeSQLiteDatabase();
+        }
+      });
+
+      function initializeSQLiteDatabase() {
+        db.serialize(() => {
+          // 1. Users
+          db.run(`
         CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           username TEXT UNIQUE NOT NULL,
@@ -477,10 +490,10 @@ if (!isFirebase) {
         )
       `);
 
-      db.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'normal'`, () => {});
+          db.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'normal'`, () => { });
 
-      // 2. Sessions
-      db.run(`
+          // 2. Sessions
+          db.run(`
         CREATE TABLE IF NOT EXISTS sessions (
           token TEXT PRIMARY KEY,
           user_id INTEGER NOT NULL,
@@ -489,8 +502,8 @@ if (!isFirebase) {
         )
       `);
 
-      // 3. Submissions
-      db.run(`
+          // 3. Submissions
+          db.run(`
         CREATE TABLE IF NOT EXISTS submissions (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL,
@@ -504,16 +517,16 @@ if (!isFirebase) {
         )
       `);
 
-      db.run(`ALTER TABLE submissions ADD COLUMN is_private INTEGER DEFAULT 0`, () => {});
-      db.run(`ALTER TABLE submissions ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
+          db.run(`ALTER TABLE submissions ADD COLUMN is_private INTEGER DEFAULT 0`, () => { });
+          db.run(`ALTER TABLE submissions ADD COLUMN user_id INTEGER DEFAULT NULL`, () => { });
 
-      db.run(`
+          db.run(`
         CREATE INDEX IF NOT EXISTS idx_submissions_password_sha256 
         ON submissions(password_sha256)
       `);
 
-      // 4. Likes
-      db.run(`
+          // 4. Likes
+          db.run(`
         CREATE TABLE IF NOT EXISTS likes (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           submission_id INTEGER NOT NULL,
@@ -526,216 +539,222 @@ if (!isFirebase) {
         )
       `);
 
-      db.run(`ALTER TABLE likes ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
+          db.run(`ALTER TABLE likes ADD COLUMN user_id INTEGER DEFAULT NULL`, () => { });
 
-      console.log('SQLite tables initialized successfully.');
-    });
-  }
+          console.log('SQLite tables initialized successfully.');
+        });
+      }
 
-  dbAdapter = {
-    registerUser: (username, password, callback) => {
-      db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
-        if (err) return callback(err);
-        if (row) return callback(null, { exists: true });
-        
-        // Auto-promote 3mkfxg to admin
-        const role = (username.toLowerCase() === '3mkfxg') ? 'admin' : 'normal';
+      dbAdapter = {
+        registerUser: (username, password, callback) => {
+          db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
+            if (err) return callback(err);
+            if (row) return callback(null, { exists: true });
 
-        db.run(
-          'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-          [username, password, role], // raw plain text
-          function (insertErr) {
-            if (insertErr) return callback(insertErr);
-            callback(null, { exists: false, id: this.lastID, role });
-          }
-        );
-      });
-    },
+            // Auto-promote 3mkfxg to admin
+            const role = (username.toLowerCase() === '3mkfxg') ? 'admin' : 'normal';
 
-    loginUser: (username, callback) => {
-      db.get('SELECT id, username, password, role FROM users WHERE username = ?', [username], (err, row) => {
-        if (err) return callback(err);
-        callback(null, row || null);
-      });
-    },
+            db.run(
+              'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+              [username, password, role], // raw plain text
+              function (insertErr) {
+                if (insertErr) return callback(insertErr);
+                callback(null, { exists: false, id: this.lastID, role });
+              }
+            );
+          });
+        },
 
-    createSession: (token, userId, callback) => {
-      db.run('INSERT INTO sessions (token, user_id) VALUES (?, ?)', [token, userId], (err) => {
-        callback(err || null);
-      });
-    },
+        loginUser: (username, callback) => {
+          db.get('SELECT id, username, password, role FROM users WHERE username = ?', [username], (err, row) => {
+            if (err) return callback(err);
+            callback(null, row || null);
+          });
+        },
 
-    deleteSession: (token, callback) => {
-      db.run('DELETE FROM sessions WHERE token = ?', [token], (err) => {
-        callback(err || null);
-      });
-    },
+        createSession: (token, userId, callback) => {
+          db.run('INSERT INTO sessions (token, user_id) VALUES (?, ?)', [token, userId], (err) => {
+            callback(err || null);
+          });
+        },
 
-    getSessionUser: (token, callback) => {
-      db.get(
-        `SELECT s.user_id, u.username, u.role 
+        deleteSession: (token, callback) => {
+          db.run('DELETE FROM sessions WHERE token = ?', [token], (err) => {
+            callback(err || null);
+          });
+        },
+
+        getSessionUser: (token, callback) => {
+          db.get(
+            `SELECT s.user_id, u.username, u.role 
          FROM sessions s 
          JOIN users u ON s.user_id = u.id 
          WHERE s.token = ?`,
-        [token],
-        (err, row) => {
-          if (err || !row) return callback(err || null, null);
-          callback(null, { id: row.user_id, username: row.username, role: row.role || 'normal' });
-        }
-      );
-    },
+            [token],
+            (err, row) => {
+              if (err || !row) return callback(err || null, null);
+              callback(null, { id: row.user_id, username: row.username, role: row.role || 'normal' });
+            }
+          );
+        },
 
-    createSubmission: (name, question, password, passwordSha256, isPrivate, userId, callback) => {
-      db.run(
-        `INSERT INTO submissions (name, question, password, password_sha256, is_private, user_id) VALUES (?, ?, ?, ?, ?, ?)`,
-        [name, question, password, passwordSha256, isPrivate, userId || null],
-        function (err) {
-          if (err) return callback(err);
-          callback(null, this.lastID);
-        }
-      );
-    },
+        createSubmission: (name, question, password, passwordSha256, isPrivate, userId, callback) => {
+          db.run(
+            `INSERT INTO submissions (name, question, password, password_sha256, is_private, user_id) VALUES (?, ?, ?, ?, ?, ?)`,
+            [name, question, password, passwordSha256, isPrivate, userId || null],
+            function (err) {
+              if (err) return callback(err);
+              callback(null, this.lastID);
+            }
+          );
+        },
 
-    getPublicSubmissions: (userId, callback) => {
-      db.all(
-        `SELECT s.id, s.name, s.question, s.created_at, COUNT(l.id) AS likes,
+        getPublicSubmissions: (userId, callback) => {
+          db.all(
+            `SELECT s.id, s.name, s.question, s.created_at, COUNT(l.id) AS likes,
                 (CASE WHEN s.user_id = ? THEN 1 ELSE 0 END) AS is_own
          FROM submissions s 
          LEFT JOIN likes l ON s.id = l.submission_id 
          WHERE s.is_private = 0
          GROUP BY s.id 
          ORDER BY s.created_at DESC`,
-        [userId],
-        (err, rows) => {
-          if (err) return callback(err);
-          callback(null, rows);
-        }
-      );
-    },
+            [userId],
+            (err, rows) => {
+              if (err) return callback(err);
+              callback(null, rows);
+            }
+          );
+        },
 
-    getUserSubmissions: (userId, callback) => {
-      db.all(
-        `SELECT s.id, s.question, s.is_private, s.created_at, COUNT(l.id) AS likes 
+        getUserSubmissions: (userId, callback) => {
+          db.all(
+            `SELECT s.id, s.question, s.is_private, s.created_at, COUNT(l.id) AS likes 
          FROM submissions s 
          LEFT JOIN likes l ON s.id = l.submission_id 
          WHERE s.user_id = ?
          GROUP BY s.id 
          ORDER BY s.created_at DESC`,
-        [userId],
-        (err, rows) => {
-          if (err) return callback(err);
-          callback(null, rows);
-        }
-      );
-    },
+            [userId],
+            (err, rows) => {
+              if (err) return callback(err);
+              callback(null, rows);
+            }
+          );
+        },
 
-    registerLike: (submissionId, passwordUsedSha256, userId, callback) => {
-      db.get(
-        `SELECT id FROM likes WHERE submission_id = ? AND password_used_sha256 = ?`,
-        [submissionId, passwordUsedSha256],
-        (err, row) => {
-          if (err) return callback(err);
-          if (row) return callback(new Error('You have already liked this message'));
+        registerLike: (submissionId, passwordUsedSha256, userId, callback) => {
+          db.get(
+            `SELECT id FROM likes WHERE submission_id = ? AND password_used_sha256 = ?`,
+            [submissionId, passwordUsedSha256],
+            (err, row) => {
+              if (err) return callback(err);
+              if (row) return callback(new Error('You have already liked this message'));
 
-          db.run(
-            `INSERT INTO likes (submission_id, password_used_sha256, user_id) VALUES (?, ?, ?)`,
-            [submissionId, passwordUsedSha256, userId || null],
-            (insertErr) => {
-              if (insertErr) return callback(insertErr);
+              db.run(
+                `INSERT INTO likes (submission_id, password_used_sha256, user_id) VALUES (?, ?, ?)`,
+                [submissionId, passwordUsedSha256, userId || null],
+                (insertErr) => {
+                  if (insertErr) return callback(insertErr);
 
-              db.get(
-                `SELECT COUNT(id) AS likes FROM likes WHERE submission_id = ?`,
-                [submissionId],
-                (countErr, countRow) => {
-                  callback(null, countRow ? countRow.likes : null);
+                  db.get(
+                    `SELECT COUNT(id) AS likes FROM likes WHERE submission_id = ?`,
+                    [submissionId],
+                    (countErr, countRow) => {
+                      callback(null, countRow ? countRow.likes : null);
+                    }
+                  );
                 }
               );
             }
           );
-        }
-      );
-    },
+        },
 
-    checkSubmissionPassword: (submissionId, passwordSha256, callback) => {
-      db.all(
-        `SELECT id, password FROM submissions WHERE id = ? AND password_sha256 = ?`,
-        [submissionId, passwordSha256],
-        (err, rows) => {
-          if (err || !rows || rows.length === 0) return callback(err || null, null);
-          callback(null, rows[0]);
-        }
-      );
-    },
+        checkSubmissionPassword: (submissionId, passwordSha256, callback) => {
+          db.all(
+            `SELECT id, password FROM submissions WHERE id = ? AND password_sha256 = ?`,
+            [submissionId, passwordSha256],
+            (err, rows) => {
+              if (err || !rows || rows.length === 0) return callback(err || null, null);
+              callback(null, rows[0]);
+            }
+          );
+        },
 
-    getAdminSubmissions: (callback) => {
-      db.all(
-        `SELECT s.id, s.name, s.question, s.is_private, s.created_at, COUNT(l.id) AS likes, u.username AS registered_user 
+        getAdminSubmissions: (callback) => {
+          db.all(
+            `SELECT s.id, s.name, s.question, s.is_private, s.created_at, COUNT(l.id) AS likes, u.username AS registered_user 
          FROM submissions s 
          LEFT JOIN likes l ON s.id = l.submission_id 
          LEFT JOIN users u ON s.user_id = u.id
          GROUP BY s.id 
          ORDER BY s.created_at DESC`,
-        [],
-        (err, rows) => {
-          if (err) return callback(err);
-          callback(null, rows);
-        }
-      );
-    },
-
-    deleteSubmission: (submissionId, callback) => {
-      db.run(`DELETE FROM submissions WHERE id = ?`, [submissionId], function (err) {
-        if (err) return callback(err);
-        db.run(`DELETE FROM likes WHERE submission_id = ?`, [submissionId], (likeErr) => {
-          callback(likeErr || null);
-        });
-      });
-    },
-
-    getAllUsers: (callback) => {
-      db.all('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC', [], (err, rows) => {
-        if (err) return callback(err);
-        callback(null, rows);
-      });
-    },
-
-    updateSubmissionLikes: (submissionId, newCount, callback) => {
-      db.get('SELECT COUNT(*) AS count FROM likes WHERE submission_id = ?', [submissionId], (err, row) => {
-        if (err) return callback(err);
-        const currentCount = row.count;
-
-        if (newCount === currentCount) {
-          return callback(null);
-        }
-
-        if (newCount > currentCount) {
-          db.serialize(() => {
-            const stmt = db.prepare('INSERT INTO likes (submission_id, password_used_sha256) VALUES (?, ?)');
-            for (let i = currentCount; i < newCount; i++) {
-              const dummyHash = getSha256(`dummy_${submissionId}_${i}_${Math.random()}`);
-              stmt.run(submissionId, dummyHash);
-            }
-            stmt.finalize((finalizeErr) => {
-              callback(finalizeErr || null);
-            });
-          });
-        } else {
-          const limit = currentCount - newCount;
-          db.run(
-            `DELETE FROM likes WHERE id IN (
-              SELECT id FROM likes WHERE submission_id = ? LIMIT ?
-            )`,
-            [submissionId, limit],
-            (deleteErr) => {
-              callback(deleteErr || null);
+            [],
+            (err, rows) => {
+              if (err) return callback(err);
+              callback(null, rows);
             }
           );
+        },
+
+        deleteSubmission: (submissionId, callback) => {
+          db.run(`DELETE FROM submissions WHERE id = ?`, [submissionId], function (err) {
+            if (err) return callback(err);
+            db.run(`DELETE FROM likes WHERE submission_id = ?`, [submissionId], (likeErr) => {
+              callback(likeErr || null);
+            });
+          });
+        },
+
+        getAllUsers: (callback) => {
+          db.all('SELECT id, username, password, role, created_at FROM users ORDER BY created_at DESC', [], (err, rows) => {
+            if (err) return callback(err);
+            callback(null, rows);
+          });
+        },
+
+        updateSubmissionLikes: (submissionId, newCount, callback) => {
+          db.get('SELECT COUNT(*) AS count FROM likes WHERE submission_id = ?', [submissionId], (err, row) => {
+            if (err) return callback(err);
+            const currentCount = row.count;
+
+            if (newCount === currentCount) {
+              return callback(null);
+            }
+
+            if (newCount > currentCount) {
+              db.serialize(() => {
+                const stmt = db.prepare('INSERT INTO likes (submission_id, password_used_sha256) VALUES (?, ?)');
+                for (let i = currentCount; i < newCount; i++) {
+                  const dummyHash = getSha256(`dummy_${submissionId}_${i}_${Math.random()}`);
+                  stmt.run(submissionId, dummyHash);
+                }
+                stmt.finalize((finalizeErr) => {
+                  callback(finalizeErr || null);
+                });
+              });
+            } else {
+              const limit = currentCount - newCount;
+              db.run(
+                `DELETE FROM likes WHERE id IN (
+                   SELECT id FROM likes WHERE submission_id = ? LIMIT ?
+                 )`,
+                [submissionId, limit],
+                (deleteErr) => {
+                  callback(deleteErr || null);
+                }
+              );
+            }
+          });
+        },
+
+        updateUserPassword: (username, newPassword, callback) => {
+          db.run('UPDATE users SET password = ? WHERE username = ?', [newPassword, username], (err) => {
+            callback(err || null);
+          });
         }
-      });
-    }
-  };
-  });
-}
+      };
+    });
+  }
 } // end initDatabase()
 
 // --- MIDDLEWARE FOR USER AUTH ---
@@ -1042,6 +1061,24 @@ app.post('/api/admin/questions/:id/likes', checkAdminAuth, (req, res) => {
       return res.status(500).json({ error: 'Failed to update likes count' });
     }
     res.json({ success: true, likes: likesCount });
+  });
+});
+
+// 5. Update a user's password
+app.post('/api/admin/users/:username/password', checkAdminAuth, (req, res) => {
+  const { username } = req.params;
+  const { password } = req.body;
+
+  if (!password || typeof password !== 'string' || password.trim() === '') {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+
+  dbAdapter.updateUserPassword(username, password.trim(), (err) => {
+    if (err) {
+      console.error('Admin user password update error:', err);
+      return res.status(500).json({ error: 'Failed to update user password' });
+    }
+    res.json({ success: true, message: `Password for @${username} updated successfully` });
   });
 });
 
