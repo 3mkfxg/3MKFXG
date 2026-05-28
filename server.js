@@ -465,6 +465,43 @@ async function initDatabase() {
                 .catch(err => callback(err));
             })
             .catch(err => callback(err));
+        },
+
+        unregisterLike: (submissionId, passwordUsedSha256, userId, callback) => {
+          const docId = `${submissionId}_${passwordUsedSha256}`;
+          const likesRef = firestore.collection('likes').doc(docId);
+
+          likesRef.get()
+            .then(doc => {
+              if (!doc.exists) {
+                return callback(new Error('You have not liked this message yet'));
+              }
+              likesRef.delete()
+                .then(() => {
+                  firestore.collection('likes').where('submission_id', '==', submissionId).get()
+                    .then(snap => {
+                      callback(null, snap.size);
+                    })
+                    .catch(err => callback(null, null));
+                })
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
+        },
+
+        updateUserRole: (username, newRole, callback) => {
+          if (username.toLowerCase() === '3mkfxg') {
+            return callback(new Error('Master Admin account role cannot be changed'));
+          }
+          firestore.collection('users').where('username', '==', username).get()
+            .then(snapshot => {
+              if (snapshot.empty) return callback(new Error('User not found'));
+              const docId = snapshot.docs[0].id;
+              firestore.collection('users').doc(docId).update({ role: newRole })
+                .then(() => callback(null))
+                .catch(err => callback(err));
+            })
+            .catch(err => callback(err));
         }
       };
     } catch (err) {
@@ -781,6 +818,42 @@ async function initDatabase() {
               });
             });
           });
+        },
+
+        unregisterLike: (submissionId, passwordUsedSha256, userId, callback) => {
+          db.get(
+            `SELECT id FROM likes WHERE submission_id = ? AND password_used_sha256 = ?`,
+            [submissionId, passwordUsedSha256],
+            (err, row) => {
+              if (err) return callback(err);
+              if (!row) return callback(new Error('You have not liked this message yet'));
+
+              db.run(
+                `DELETE FROM likes WHERE submission_id = ? AND password_used_sha256 = ?`,
+                [submissionId, passwordUsedSha256],
+                (deleteErr) => {
+                  if (deleteErr) return callback(deleteErr);
+
+                  db.get(
+                    `SELECT COUNT(id) AS likes FROM likes WHERE submission_id = ?`,
+                    [submissionId],
+                    (countErr, countRow) => {
+                      callback(null, countRow ? countRow.likes : null);
+                    }
+                  );
+                }
+              );
+            }
+          );
+        },
+
+        updateUserRole: (username, newRole, callback) => {
+          if (username.toLowerCase() === '3mkfxg') {
+            return callback(new Error('Master Admin account role cannot be changed'));
+          }
+          db.run('UPDATE users SET role = ? WHERE username = ?', [newRole, username], (err) => {
+            callback(err || null);
+          });
         }
       };
     });
@@ -1018,6 +1091,48 @@ app.post('/api/questions/:id/like', checkUserAuth, (req, res) => {
   }
 });
 
+// 3.5. Unlike a question (Supports anonymous password or authenticated session)
+app.post('/api/questions/:id/unlike', checkUserAuth, (req, res) => {
+  const { id } = req.params;
+
+  if (req.user) {
+    const userId = req.user.id;
+    const userVoteHash = getSha256(`user_${userId}`);
+
+    dbAdapter.unregisterLike(id, userVoteHash, userId, (err, newCount) => {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+      res.json({ success: true, likes: newCount });
+    });
+  } else {
+    const { password } = req.body;
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    const password_sha256 = getSha256(password.trim());
+
+    dbAdapter.checkSubmissionPassword(id, password_sha256, (err, submission) => {
+      if (err || !submission) {
+        return res.status(401).json({ error: 'Invalid password.' });
+      }
+
+      // Match plain-text directly as requested
+      if (password.trim() !== submission.password) {
+        return res.status(401).json({ error: 'Invalid password.' });
+      }
+
+      dbAdapter.unregisterLike(id, password_sha256, null, (unlikeErr, newCount) => {
+        if (unlikeErr) {
+          return res.status(400).json({ error: unlikeErr.message });
+        }
+        res.json({ success: true, likes: newCount });
+      });
+    });
+  }
+});
+
 // --- SECURE ADMIN ENDPOINTS (3MKFXG Dashboards) ---
 const ADMIN_SECRET_KEY = '3mkfxgadmin';
 
@@ -1126,6 +1241,28 @@ app.delete('/api/admin/users/:username', checkAdminAuth, (req, res) => {
       return res.status(500).json({ error: 'Failed to delete user' });
     }
     res.json({ success: true, message: `User @${username} deleted successfully` });
+  });
+});
+
+// 7. Update a user's clearance role (Admin only)
+app.post('/api/admin/users/:username/role', checkAdminAuth, (req, res) => {
+  const { username } = req.params;
+  const { role } = req.body;
+
+  if (!role || (role !== 'admin' && role !== 'normal')) {
+    return res.status(400).json({ error: 'Valid role (admin or normal) is required' });
+  }
+
+  if (username.toLowerCase() === '3mkfxg') {
+    return res.status(403).json({ error: 'Master Admin account role cannot be changed' });
+  }
+
+  dbAdapter.updateUserRole(username, role, (err) => {
+    if (err) {
+      console.error('Admin user role update error:', err);
+      return res.status(500).json({ error: 'Failed to update user role' });
+    }
+    res.json({ success: true, message: `Clearance role for @${username} updated to ${role} successfully` });
   });
 });
 

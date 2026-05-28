@@ -91,6 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem(storageKeys.likedQuestions, JSON.stringify(liked));
   }
 
+  function markQuestionAsUnliked(id) {
+    const liked = getLikedQuestions();
+    delete liked[id];
+    localStorage.setItem(storageKeys.likedQuestions, JSON.stringify(liked));
+  }
+
   // --- OWN SUBMISSIONS UTILITIES ---
   function getOwnSubmissions() {
     try {
@@ -135,10 +141,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3500);
   }
 
+  // --- UTC TIME PARSER FOR TIMEZONES ---
+  function parseUTCDate(dateString) {
+    if (!dateString) return new Date();
+    if (typeof dateString === 'string' && !dateString.includes('T') && !dateString.includes('Z')) {
+      // Correct SQLite date string (e.g. "2026-05-28 22:55:14") to standard UTC ISO format
+      return new Date(dateString.replace(' ', 'T') + 'Z');
+    }
+    return new Date(dateString);
+  }
+
   // --- TIME FORMATTING (Relative) ---
   function formatRelativeTime(dateString) {
     const now = new Date();
-    const date = new Date(dateString);
+    const date = parseUTCDate(dateString);
     const seconds = Math.floor((now - date) / 1000);
 
     if (isNaN(date.getTime())) return 'some time ago';
@@ -520,8 +536,56 @@ document.addEventListener('DOMContentLoaded', () => {
   // Handle Like Clicks
   async function handleLikeClick(id) {
     const likedList = getLikedQuestions();
-    if (likedList[id]) {
-      showToast('You already liked this message!', 'error');
+    const isAlreadyLiked = !!likedList[id];
+
+    if (isAlreadyLiked) {
+      if (sessionToken) {
+        // Authenticated Unlike flow
+        try {
+          const response = await fetch(`${API_BASE}/api/questions/${id}/unlike`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'x-session-token': sessionToken 
+            }
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to remove like');
+
+          markQuestionAsUnliked(id);
+
+          // Update UI
+          const countEl = document.getElementById(`likes-count-${id}`);
+          if (countEl && data.likes !== null) {
+            countEl.innerText = data.likes;
+          }
+          
+          const likeBtn = document.querySelector(`.btn-like[data-id="${id}"]`);
+          if (likeBtn) {
+            likeBtn.classList.remove('liked');
+            const heartIcon = likeBtn.querySelector('i');
+            if (heartIcon) heartIcon.className = 'fa-regular fa-heart';
+          }
+
+          showToast('Like removed.');
+          if (isDashboardVisible) fetchUserWhispers();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      } else {
+        // Anonymous Unlike flow: prompt password modal for verification!
+        currentTargetLikeId = id;
+        const cachedPassword = getSavedPassword();
+        inputLikePassword.value = cachedPassword;
+        inputLikePassword.setAttribute('type', 'password');
+        btnToggleLikePassword.querySelector('i').className = 'fa-regular fa-eye';
+        
+        formLike.setAttribute('data-action', 'unlike');
+
+        openModal(modalLike);
+        setTimeout(() => inputLikePassword.focus(), 150);
+      }
       return;
     }
 
@@ -567,6 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
       inputLikePassword.setAttribute('type', 'password');
       btnToggleLikePassword.querySelector('i').className = 'fa-regular fa-eye';
 
+      formLike.setAttribute('data-action', 'like');
+
       openModal(modalLike);
       setTimeout(() => inputLikePassword.focus(), 150);
     }
@@ -580,8 +646,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = inputLikePassword.value.trim();
     if (!password || !currentTargetLikeId) return;
 
+    const action = formLike.getAttribute('data-action') || 'like';
+    const endpoint = action === 'unlike' ? 'unlike' : 'like';
+
     try {
-      const response = await fetch(`${API_BASE}/api/questions/${currentTargetLikeId}/like`, {
+      const response = await fetch(`${API_BASE}/api/questions/${currentTargetLikeId}/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
@@ -590,13 +659,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to register like');
+        throw new Error(data.error || `Failed to ${action}`);
       }
 
       // Success
       closeModal(modalLike);
       savePassword(password);
-      markQuestionAsLiked(currentTargetLikeId);
+      
+      if (action === 'unlike') {
+        markQuestionAsUnliked(currentTargetLikeId);
+      } else {
+        markQuestionAsLiked(currentTargetLikeId);
+      }
 
       const countEl = document.getElementById(`likes-count-${currentTargetLikeId}`);
       if (countEl && data.likes !== null) {
@@ -605,12 +679,19 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const likeBtn = document.querySelector(`.btn-like[data-id="${currentTargetLikeId}"]`);
       if (likeBtn) {
-        likeBtn.classList.add('liked');
-        const heartIcon = likeBtn.querySelector('i');
-        if (heartIcon) heartIcon.className = 'fa-solid fa-heart';
+        if (action === 'unlike') {
+          likeBtn.classList.remove('liked');
+          const heartIcon = likeBtn.querySelector('i');
+          if (heartIcon) heartIcon.className = 'fa-regular fa-heart';
+        } else {
+          likeBtn.classList.add('liked');
+          const heartIcon = likeBtn.querySelector('i');
+          if (heartIcon) heartIcon.className = 'fa-solid fa-heart';
+        }
       }
 
-      showToast('Like registered successfully!');
+      showToast(action === 'unlike' ? 'Like removed.' : 'Like registered successfully!');
+      if (isDashboardVisible) fetchUserWhispers();
       currentTargetLikeId = null;
     } catch (err) {
       showToast(err.message, 'error');
