@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isAlreadyLiked = !!likedList[q.id];
       const isOwn = q.is_own === 1 || !!ownSubmissions[q.id];
       const card = document.createElement('div');
-      card.className = 'whisper-card';
+      card.className = `whisper-card ${!currentUser ? 'blurred-card' : ''}`;
       card.setAttribute('data-id', q.id);
 
       const ownBadgeHTML = isOwn 
@@ -362,6 +362,36 @@ document.addEventListener('DOMContentLoaded', () => {
         handleLikeClick(questionId);
       });
     });
+
+    // Handle encrypted guest board overlay
+    const existingOverlay = document.getElementById('encrypted-overlay');
+    if (!currentUser) {
+      if (!existingOverlay) {
+        const gridWrapper = document.getElementById('questions-grid-wrapper');
+        if (gridWrapper) {
+          const overlay = document.createElement('div');
+          overlay.id = 'encrypted-overlay';
+          overlay.className = 'encrypted-overlay';
+          overlay.innerHTML = `
+            <div class="encrypted-card">
+              <i class="fa-solid fa-lock" style="color: #00ff66;"></i>
+              <h3>Board Encrypted</h3>
+              <p>Public whispers are fully encrypted for guest security. Sign in or create a free account to decrypt and read all community secrets!</p>
+              <div class="encrypted-actions">
+                <a href="login.html" class="btn btn-primary" style="font-size: 0.85rem; padding: 10px 18px; text-decoration: none; border-radius: 8px;">
+                  <i class="fa-solid fa-right-to-bracket"></i> Sign In / Sign Up
+                </a>
+              </div>
+            </div>
+          `;
+          gridWrapper.appendChild(overlay);
+        }
+      }
+    } else {
+      if (existingOverlay) {
+        existingOverlay.remove();
+      }
+    }
   }
 
   // HTML Escaping for security

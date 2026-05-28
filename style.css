@@ -1195,9 +1195,79 @@ select:focus {
   border: 1px solid rgba(255, 255, 255, 0.06);
   padding: 2px 8px;
   border-radius: 8px;
-  width: fit-content;
   margin-bottom: 6px;
   font-family: var(--font-display);
+}
+
+/* Guest Feed Encryption (Gated board) */
+.blurred-card {
+  filter: blur(8px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.35;
+}
+
+.questions-grid-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.encrypted-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 40px;
+  z-index: 5;
+  background: rgba(5, 5, 8, 0.2);
+  border-radius: var(--border-radius-md);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.encrypted-card {
+  background: rgba(9, 11, 16, 0.95);
+  border: 1px solid rgba(0, 255, 102, 0.2);
+  box-shadow: 0 15px 45px rgba(0, 255, 102, 0.12);
+  border-radius: var(--border-radius-md);
+  padding: 30px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: hologram-pulse 4s infinite alternate ease-in-out;
+}
+
+.encrypted-card i {
+  font-size: 2.5rem;
+  color: #00ff66;
+  text-shadow: 0 0 15px rgba(0, 255, 102, 0.3);
+  margin-bottom: 15px;
+  display: block;
+}
+
+.encrypted-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.encrypted-card p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.encrypted-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
 
 
