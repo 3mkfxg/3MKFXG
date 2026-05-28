@@ -382,6 +382,61 @@ async function initDatabase() {
               .catch(err => callback(err));
           })
           .catch(err => callback(err));
+      },
+
+      getAllUsers: (callback) => {
+        firestore.collection('users').get()
+          .then(snapshot => {
+            const users = snapshot.docs.map(doc => ({
+              id: doc.id,
+              username: doc.data().username,
+              role: doc.data().role || 'normal',
+              created_at: doc.data().created_at
+            }));
+            users.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            callback(null, users);
+          })
+          .catch(err => callback(err));
+      },
+
+      updateSubmissionLikes: (submissionId, newCount, callback) => {
+        const likesRef = firestore.collection('likes').where('submission_id', '==', submissionId);
+        likesRef.get()
+          .then(snapshot => {
+            const currentCount = snapshot.size;
+
+            if (newCount === currentCount) {
+              return callback(null);
+            }
+
+            if (newCount > currentCount) {
+              const batch = firestore.batch();
+              for (let i = currentCount; i < newCount; i++) {
+                const dummyHash = getSha256(`dummy_${submissionId}_${i}_${Math.random()}`);
+                const docId = `${submissionId}_${dummyHash}`;
+                const ref = firestore.collection('likes').doc(docId);
+                batch.set(ref, {
+                  submission_id: submissionId,
+                  password_used_sha256: dummyHash,
+                  user_id: null,
+                  created_at: new Date().toISOString()
+                });
+              }
+              batch.commit()
+                .then(() => callback(null))
+                .catch(err => callback(err));
+            } else {
+              const batch = firestore.batch();
+              const docsToDelete = snapshot.docs.slice(0, currentCount - newCount);
+              docsToDelete.forEach(doc => {
+                batch.delete(doc.ref);
+              });
+              batch.commit()
+                .then(() => callback(null))
+                .catch(err => callback(err));
+            }
+          })
+          .catch(err => callback(err));
       }
     };
   } catch (err) {
@@ -634,6 +689,48 @@ if (!isFirebase) {
         db.run(`DELETE FROM likes WHERE submission_id = ?`, [submissionId], (likeErr) => {
           callback(likeErr || null);
         });
+      });
+    },
+
+    getAllUsers: (callback) => {
+      db.all('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC', [], (err, rows) => {
+        if (err) return callback(err);
+        callback(null, rows);
+      });
+    },
+
+    updateSubmissionLikes: (submissionId, newCount, callback) => {
+      db.get('SELECT COUNT(*) AS count FROM likes WHERE submission_id = ?', [submissionId], (err, row) => {
+        if (err) return callback(err);
+        const currentCount = row.count;
+
+        if (newCount === currentCount) {
+          return callback(null);
+        }
+
+        if (newCount > currentCount) {
+          db.serialize(() => {
+            const stmt = db.prepare('INSERT INTO likes (submission_id, password_used_sha256) VALUES (?, ?)');
+            for (let i = currentCount; i < newCount; i++) {
+              const dummyHash = getSha256(`dummy_${submissionId}_${i}_${Math.random()}`);
+              stmt.run(submissionId, dummyHash);
+            }
+            stmt.finalize((finalizeErr) => {
+              callback(finalizeErr || null);
+            });
+          });
+        } else {
+          const limit = currentCount - newCount;
+          db.run(
+            `DELETE FROM likes WHERE id IN (
+              SELECT id FROM likes WHERE submission_id = ? LIMIT ?
+            )`,
+            [submissionId, limit],
+            (deleteErr) => {
+              callback(deleteErr || null);
+            }
+          );
+        }
       });
     }
   };
@@ -916,6 +1013,35 @@ app.delete('/api/admin/questions/:id', checkAdminAuth, (req, res) => {
       return res.status(500).json({ error: 'Failed to delete message' });
     }
     res.json({ success: true, message: 'Message deleted successfully' });
+  });
+});
+
+// 3. Get all registered users
+app.get('/api/admin/users', checkAdminAuth, (req, res) => {
+  dbAdapter.getAllUsers((err, users) => {
+    if (err) {
+      console.error('Admin users query error:', err);
+      return res.status(500).json({ error: 'Failed to retrieve registered users' });
+    }
+    res.json(users);
+  });
+});
+
+// 4. Update a question's likes count
+app.post('/api/admin/questions/:id/likes', checkAdminAuth, (req, res) => {
+  const { id } = req.params;
+  const likesCount = parseInt(req.body.likes);
+
+  if (isNaN(likesCount) || likesCount < 0) {
+    return res.status(400).json({ error: 'Likes count must be a non-negative number' });
+  }
+
+  dbAdapter.updateSubmissionLikes(id, likesCount, (err) => {
+    if (err) {
+      console.error('Admin likes update error:', err);
+      return res.status(500).json({ error: 'Failed to update likes count' });
+    }
+    res.json({ success: true, likes: likesCount });
   });
 });
 

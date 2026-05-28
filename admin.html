@@ -29,6 +29,96 @@
       padding: 20px;
     }
 
+    .admin-tabs-bar {
+      margin-bottom: 25px;
+      display: flex;
+      gap: 10px;
+      padding: 6px;
+      background: rgba(9, 11, 16, 0.6);
+      border: 1px solid rgba(0, 255, 102, 0.1);
+      border-radius: 12px;
+    }
+
+    .admin-tab-btn {
+      padding: 10px 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: var(--transition-smooth);
+    }
+
+    .admin-tab-btn:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .admin-tab-btn.active {
+      background: rgba(0, 255, 102, 0.08);
+      border: 1px solid rgba(0, 255, 102, 0.25);
+      color: #00ff66;
+      box-shadow: 0 4px 12px rgba(0, 255, 102, 0.08);
+    }
+
+    .admin-users-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .admin-users-table th {
+      padding: 14px 20px;
+      font-family: 'Outfit', sans-serif;
+      color: #00ff66;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid rgba(0, 255, 102, 0.15);
+      background: rgba(0, 255, 102, 0.02);
+    }
+
+    .admin-users-table td {
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      color: #e5e7eb;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .admin-users-table tr:hover td {
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .badge-role {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .badge-role-admin {
+      background: rgba(0, 255, 102, 0.08);
+      border: 1px solid rgba(0, 255, 102, 0.2);
+      color: #00ff66;
+    }
+
+    .badge-role-normal {
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: #a78bfa;
+    }
+
     .admin-card {
       background: rgba(9, 11, 16, 0.85);
       border: 1px solid rgba(0, 255, 102, 0.15);
@@ -203,43 +293,76 @@
     </div>
   </div>
 
-  <!-- MAIN ADMIN DASHBOARD (Initially Hidden) -->
-  <div id="admin-dashboard" class="app-wrapper hidden">
-
-    <!-- Hero Header -->
-    <header class="hero-header">
-      <div class="brand-badge"><i class="fa-solid fa-shield-halved"></i> Terminal Access</div>
-      <h1 class="hero-title" style="font-size: 2.1rem;">3MK<span>F X G</span> WORLD</h1>
-      <p class="hero-subtitle" style="margin-bottom: 12px;">Admin Overview — view secret names, private whispers, and
-        manage messages.</p>
-      <button id="btn-logout" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Lock Console</button>
-    </header>
-
-    <!-- Questions Feed Section -->
-    <main class="feed-section">
-      <div class="feed-header">
-        <h2 class="feed-title"><i class="fa-solid fa-list-check"></i> Total Submissions</h2>
-        <span id="admin-count-badge" class="badge">0 messages</span>
+    <!-- MAIN ADMIN DASHBOARD (Initially Hidden) -->
+    <div id="admin-dashboard" class="app-wrapper hidden">
+ 
+      <!-- Hero Header -->
+      <header class="hero-header">
+        <div class="brand-badge"><i class="fa-solid fa-shield-halved"></i> Terminal Access</div>
+        <h1 class="hero-title" style="font-size: 2.1rem;">3MK<span>F X G</span> WORLD</h1>
+        <p class="hero-subtitle" style="margin-bottom: 12px;">Admin Overview — view secret names, private whispers, and
+          manage messages.</p>
+        <button id="btn-logout" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Lock Console</button>
+      </header>
+ 
+      <!-- Admin Tab Bar -->
+      <div class="admin-tabs-bar">
+        <button class="admin-tab-btn active" id="btn-tab-submissions">
+          <i class="fa-solid fa-comments"></i> Submissions
+        </button>
+        <button class="admin-tab-btn" id="btn-tab-users">
+          <i class="fa-solid fa-users"></i> Users Registered
+        </button>
       </div>
 
-      <!-- Loading State -->
-      <div id="admin-loading" class="feed-loading hidden">
-        <div class="spinner"></div>
-        <p>Loading database submissions...</p>
-      </div>
+      <!-- Questions Feed Section -->
+      <main class="feed-section" id="submissions-section">
+        <div class="feed-header">
+          <h2 class="feed-title"><i class="fa-solid fa-list-check"></i> Total Submissions</h2>
+          <span id="admin-count-badge" class="badge">0 messages</span>
+        </div>
+ 
+        <!-- Loading State -->
+        <div id="admin-loading" class="feed-loading hidden">
+          <div class="spinner"></div>
+          <p>Loading database submissions...</p>
+        </div>
+ 
+        <!-- Empty State -->
+        <div id="admin-empty" class="feed-empty hidden">
+          <i class="fa-solid fa-folder-open empty-icon"></i>
+          <h3>Database is empty</h3>
+          <p>No public or private messages found in database.</p>
+        </div>
+ 
+        <!-- Grid of Admin Whispers -->
+        <div id="admin-grid" class="questions-grid">
+          <!-- Cards injected dynamically via JS -->
+        </div>
+      </main>
 
-      <!-- Empty State -->
-      <div id="admin-empty" class="feed-empty hidden">
-        <i class="fa-solid fa-folder-open empty-icon"></i>
-        <h3>Database is empty</h3>
-        <p>No public or private messages found in database.</p>
-      </div>
+      <!-- Users Registered Section -->
+      <main class="feed-section hidden" id="users-section">
+        <div class="feed-header">
+          <h2 class="feed-title"><i class="fa-solid fa-user-shield"></i> Registered Users</h2>
+          <span id="users-count-badge" class="badge">0 users</span>
+        </div>
 
-      <!-- Grid of Admin Whispers -->
-      <div id="admin-grid" class="questions-grid">
-        <!-- Cards injected dynamically via JS -->
-      </div>
-    </main>
+        <div style="background: rgba(9, 11, 16, 0.85); border: 1px solid rgba(0, 255, 102, 0.1); border-radius: 12px; overflow: hidden; margin-top: 15px; box-shadow: 0 15px 45px rgba(0, 255, 102, 0.04);">
+          <table class="admin-users-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Registration Date</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </main>
 
     <!-- Footer -->
     <footer class="main-footer">
@@ -444,11 +567,35 @@
             
             <div class="whisper-footer" style="margin-top: 8px;">
               <span class="whisper-time"><i class="fa-regular fa-clock"></i> ${date}</span>
-              <span class="like-count"><i class="fa-solid fa-heart" style="color: var(--accent-purple);"></i> ${msg.likes} likes</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="like-count" id="likes-count-${msg.id}"><i class="fa-solid fa-heart" style="color: var(--accent-purple);"></i> ${msg.likes} likes</span>
+                <button class="btn-edit-likes" data-id="${msg.id}" data-current="${msg.likes}" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.25); color: #c084fc; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: 0.2s;">
+                  <i class="fa-solid fa-pen"></i> Edit
+                </button>
+              </div>
             </div>
           `;
 
           adminGrid.appendChild(card);
+        });
+
+        // Edit likes buttons event listeners
+        document.querySelectorAll('.btn-edit-likes').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const questionId = btn.getAttribute('data-id');
+            const currentLikes = btn.getAttribute('data-current');
+            const newLikesStr = prompt(`Enter new likes count for anonymous message #${questionId}:`, currentLikes);
+            
+            if (newLikesStr === null) return;
+            const newLikes = parseInt(newLikesStr.trim());
+            
+            if (isNaN(newLikes) || newLikes < 0) {
+              showToast('Please enter a valid non-negative number.', 'error');
+              return;
+            }
+            
+            await updateLikes(questionId, newLikes, btn);
+          });
         });
 
         // Delete buttons event listeners
@@ -503,6 +650,115 @@
         } catch (err) {
           showToast(err.message, 'error');
         }
+      }
+
+      // Update Likes Request
+      async function updateLikes(id, newCount, btnEl) {
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (sessionToken) {
+            headers['x-session-token'] = sessionToken;
+          } else {
+            headers['x-admin-key'] = adminKey;
+          }
+
+          const response = await fetch(`${API_BASE}/api/admin/questions/${id}/likes`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ likes: newCount })
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to update likes');
+
+          // Update inside DOM
+          const countEl = document.getElementById(`likes-count-${id}`);
+          if (countEl) {
+            countEl.innerHTML = `<i class="fa-solid fa-heart" style="color: var(--accent-purple);"></i> ${newCount} likes`;
+          }
+          btnEl.setAttribute('data-current', newCount);
+
+          showToast('Likes updated successfully!');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+
+      // Fetch and Render Registered Users
+      const btnTabSubmissions = document.getElementById('btn-tab-submissions');
+      const btnTabUsers = document.getElementById('btn-tab-users');
+      const submissionsSection = document.getElementById('submissions-section');
+      const usersSection = document.getElementById('users-section');
+      const usersTableBody = document.getElementById('users-table-body');
+      const usersCountBadge = document.getElementById('users-count-badge');
+
+      // Tab switcher handlers
+      btnTabSubmissions.addEventListener('click', () => {
+        btnTabSubmissions.classList.add('active');
+        btnTabUsers.classList.remove('active');
+        submissionsSection.classList.remove('hidden');
+        usersSection.classList.add('hidden');
+      });
+
+      btnTabUsers.addEventListener('click', () => {
+        btnTabUsers.classList.add('active');
+        btnTabSubmissions.classList.remove('active');
+        usersSection.classList.remove('hidden');
+        submissionsSection.classList.add('hidden');
+        fetchUsers();
+      });
+
+      async function fetchUsers() {
+        try {
+          const headers = {};
+          if (sessionToken) {
+            headers['x-session-token'] = sessionToken;
+          } else {
+            headers['x-admin-key'] = adminKey;
+          }
+
+          const response = await fetch(`${API_BASE}/api/admin/users`, { headers });
+          if (!response.ok) throw new Error('Failed to fetch registered users');
+
+          const users = await response.json();
+          renderUsers(users);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+
+      function renderUsers(users) {
+        usersTableBody.innerHTML = '';
+        usersCountBadge.innerText = `${users.length} user${users.length !== 1 ? 's' : ''}`;
+
+        if (users.length === 0) {
+          usersTableBody.innerHTML = `
+            <tr>
+              <td colspan="3" style="text-align: center; color: #9ca3af; padding: 30px;">
+                <i class="fa-solid fa-user-slash" style="font-size: 2rem; margin-bottom: 10px; display: block; opacity: 0.5;"></i>
+                No registered users found.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        users.forEach(user => {
+          const tr = document.createElement('tr');
+          const date = new Date(user.created_at).toLocaleString();
+          const isAdmin = user.role === 'admin';
+
+          tr.innerHTML = `
+            <td style="padding: 14px 20px; font-weight: 600;">@${escapeHTML(user.username)}</td>
+            <td style="padding: 14px 20px;">
+              <span class="badge-role ${isAdmin ? 'badge-role-admin' : 'badge-role-normal'}">
+                <i class="fa-solid ${isAdmin ? 'fa-user-shield' : 'fa-user'}"></i> ${user.role}
+              </span>
+            </td>
+            <td style="padding: 14px 20px; color: #9ca3af;">${date}</td>
+          `;
+          usersTableBody.appendChild(tr);
+        });
       }
 
       // Combined SSO Check and Auto-Login
