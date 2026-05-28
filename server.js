@@ -91,8 +91,12 @@ async function initDatabase() {
       
       const firestore = admin.firestore();
       
-      // ---- PING TEST: verify Firestore is actually reachable ----
-      await firestore.collection('_ping').limit(1).get();
+      // ---- PING TEST: verify Firestore is actually reachable with a 2-second timeout ----
+      const pingPromise = firestore.collection('_ping').limit(1).get();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Firestore ping timeout (2s)')), 2000)
+      );
+      await Promise.race([pingPromise, timeoutPromise]);
       // If we reach here, Firestore is working
       isFirebase = true;
     console.log('--------------------------------------------------');
@@ -920,11 +924,19 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}).catch(err => {
-  console.error('Fatal: could not initialize database:', err);
-  process.exit(1);
+// Start the server immediately so it binds to the port and passes Render's health checks
+const server = app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// Initialize database in the background
+initDatabase()
+  .then(() => {
+    console.log('Database initialization completed successfully.');
+  })
+  .catch(err => {
+    console.error('Fatal: could not initialize database:', err);
+    server.close(() => {
+      process.exit(1);
+    });
+  });
