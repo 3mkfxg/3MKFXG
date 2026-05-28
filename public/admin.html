@@ -474,6 +474,15 @@
         showToast('Console locked and session cleared.', 'success');
       });
 
+      // UTC Timezone correction parser for SQLite & Firestore dates
+      function parseUTCDate(dateString) {
+        if (!dateString) return new Date();
+        if (typeof dateString === 'string' && !dateString.includes('T') && !dateString.includes('Z')) {
+          return new Date(dateString.replace(' ', 'T') + 'Z');
+        }
+        return new Date(dateString);
+      }
+
       // HTML Escaping
       function escapeHTML(str) {
         return str
@@ -549,7 +558,7 @@
           card.className = `whisper-card ${isPrivate ? 'private-whisper' : 'public-whisper'}`;
           card.id = `admin-card-${msg.id}`;
 
-          const date = new Date(msg.created_at).toLocaleString();
+          const date = parseUTCDate(msg.created_at).toLocaleString();
 
           card.innerHTML = `
             <div class="whisper-header-row">
@@ -747,7 +756,7 @@
 
         users.forEach(user => {
           const tr = document.createElement('tr');
-          const date = new Date(user.created_at).toLocaleString();
+          const date = parseUTCDate(user.created_at).toLocaleString();
           const isAdmin = user.role === 'admin';
 
           tr.innerHTML = `
@@ -765,6 +774,9 @@
                   <i class="fa-solid fa-key"></i> Change
                 </button>
                 ${user.username.toLowerCase() !== '3mkfxg' ? `
+                <button class="btn-change-role" data-username="${escapeHTML(user.username)}" data-role="${escapeHTML(user.role)}" style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); color: #a78bfa; font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;">
+                  <i class="fa-solid ${isAdmin ? 'fa-user-minus' : 'fa-user-shield'}"></i> ${isAdmin ? 'Demote' : 'Promote'}
+                </button>
                 <button class="btn-delete-user" data-username="${escapeHTML(user.username)}" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;">
                   <i class="fa-regular fa-trash-can"></i> Delete
                 </button>
@@ -791,6 +803,15 @@
             if (confirm(`Are you absolutely sure you want to delete user @${username} completely? This will also end all of their active login sessions.`)) {
               await deleteUserAccount(username, btn);
             }
+          });
+        });
+
+        // Role change event listeners
+        document.querySelectorAll('.btn-change-role').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const username = btn.getAttribute('data-username');
+            const currentRole = btn.getAttribute('data-role');
+            await changeUserRole(username, currentRole, btn);
           });
         });
       }
@@ -878,6 +899,38 @@
           }
 
           showToast(`User @${username} deleted successfully!`);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+
+      async function changeUserRole(username, currentRole, btnEl) {
+        const targetRole = currentRole === 'admin' ? 'normal' : 'admin';
+        const actionLabel = targetRole === 'admin' ? 'promote to Administrator' : 'demote to Normal Member';
+        
+        if (!confirm(`Are you absolutely sure you want to ${actionLabel} user @${username}?`)) {
+          return;
+        }
+
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (sessionToken) {
+            headers['x-session-token'] = sessionToken;
+          } else {
+            headers['x-admin-key'] = adminKey;
+          }
+
+          const response = await fetch(`${API_BASE}/api/admin/users/${username}/role`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ role: targetRole })
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to update user role');
+
+          showToast(`User @${username} has been successfully ${targetRole === 'admin' ? 'promoted to Admin' : 'demoted to Normal Member'}!`);
+          fetchUsers();
         } catch (err) {
           showToast(err.message, 'error');
         }
