@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3MK F X G WORLD - Admin Board</title>
+
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Custom Styling (Reuse style.css and append admin specifics) -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Admin specific styles */
+    .admin-gate-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      width: 100%;
+      padding: 20px;
+    }
+
+    .admin-card {
+      background: rgba(9, 11, 16, 0.85);
+      border: 1px solid rgba(0, 255, 102, 0.15);
+      box-shadow: 0 15px 45px rgba(0, 255, 102, 0.08);
+      max-width: 400px;
+    }
+
+    .admin-input-wrapper {
+      margin-bottom: 20px;
+    }
+
+    /* Message highlights */
+    .whisper-card.private-whisper {
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      box-shadow: 0 8px 32px 0 rgba(239, 68, 68, 0.06);
+    }
+
+    .whisper-card.private-whisper:hover {
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 12px 40px 0 rgba(239, 68, 68, 0.12);
+    }
+
+    .whisper-card.public-whisper {
+      border: 1px solid rgba(0, 255, 102, 0.15);
+    }
+
+    .whisper-card.public-whisper:hover {
+      border-color: rgba(0, 255, 102, 0.35);
+      box-shadow: 0 12px 40px 0 rgba(0, 255, 102, 0.12);
+    }
+
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .badge-private-whisper {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #f87171;
+    }
+
+    .badge-public-whisper {
+      background: rgba(0, 255, 102, 0.08);
+      border: 1px solid rgba(0, 255, 102, 0.2);
+      color: #34d399;
+    }
+
+    .whisper-sender-info {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent-purple);
+      margin-bottom: 8px;
+    }
+
+    .whisper-card.private-whisper .whisper-sender-info {
+      border-left-color: #ef4444;
+    }
+
+    .whisper-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .btn-delete {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-delete:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    }
+
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #9ca3af;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-logout:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    /* Fade-out animation for smooth message deleting */
+    .card-deleted {
+      animation: card-fade-out 0.4s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes card-fade-out {
+      to {
+        transform: scale(0.9) translateX(30px);
+        opacity: 0;
+        margin-bottom: -150px;
+        height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-width: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Background Matrix Digital Rain -->
+  <canvas id="matrix-canvas"></canvas>
+
+  <!-- Background Glowing Orbs -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- ADMIN PASSCODE GATEWAY SCREEN -->
+  <div id="admin-gate" class="admin-gate-wrapper">
+    <div class="modal-card admin-card">
+      <div class="success-icon-wrapper"
+        style="color: #00ff66; border-color: rgba(0, 255, 102, 0.2); background: rgba(0, 255, 102, 0.1);">
+        <i class="fa-solid fa-terminal"></i>
+      </div>
+
+      <div class="modal-header">
+        <h2>Admin Gateway</h2>
+        <p>Enter your secret passcode to view private and public board messages.</p>
+      </div>
+
+      <form id="form-admin-auth">
+        <div class="form-group admin-input-wrapper">
+          <label for="input-admin-key">Admin Passcode</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="input-admin-key" placeholder="Enter key" required autocomplete="off">
+            <button type="button" id="btn-toggle-admin-password" class="btn-toggle-visibility">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-unlock-keyhole"></i> Decrypt Messages
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN ADMIN DASHBOARD (Initially Hidden) -->
+  <div id="admin-dashboard" class="app-wrapper hidden">
+
+    <!-- Hero Header -->
+    <header class="hero-header">
+      <div class="brand-badge"><i class="fa-solid fa-shield-halved"></i> Terminal Access</div>
+      <h1 class="hero-title" style="font-size: 2.1rem;">3MK<span>F X G</span> WORLD</h1>
+      <p class="hero-subtitle" style="margin-bottom: 12px;">Admin Overview — view secret names, private whispers, and
+        manage messages.</p>
+      <button id="btn-logout" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Lock Console</button>
+    </header>
+
+    <!-- Questions Feed Section -->
+    <main class="feed-section">
+      <div class="feed-header">
+        <h2 class="feed-title"><i class="fa-solid fa-list-check"></i> Total Submissions</h2>
+        <span id="admin-count-badge" class="badge">0 messages</span>
+      </div>
+
+      <!-- Loading State -->
+      <div id="admin-loading" class="feed-loading hidden">
+        <div class="spinner"></div>
+        <p>Loading database submissions...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="admin-empty" class="feed-empty hidden">
+        <i class="fa-solid fa-folder-open empty-icon"></i>
+        <h3>Database is empty</h3>
+        <p>No public or private messages found in database.</p>
+      </div>
+
+      <!-- Grid of Admin Whispers -->
+      <div id="admin-grid" class="questions-grid">
+        <!-- Cards injected dynamically via JS -->
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <p>&gt;_3MK F X G WORLD ADMIN CONSOLE_</p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="matrix.js"></script>
+  <script>
+    // ==== API BASE URL =====================================================
+    const API_BASE = 'https://threemkfxg-world.onrender.com';
+    // =======================================================================
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Elements
+      const adminGate = document.getElementById('admin-gate');
+      const adminDashboard = document.getElementById('admin-dashboard');
+      const formAuth = document.getElementById('form-admin-auth');
+      const inputAdminKey = document.getElementById('input-admin-key');
+      const btnTogglePass = document.getElementById('btn-toggle-admin-password');
+      const btnLogout = document.getElementById('btn-logout');
+
+      const adminGrid = document.getElementById('admin-grid');
+      const adminLoading = document.getElementById('admin-loading');
+      const adminEmpty = document.getElementById('admin-empty');
+      const adminCountBadge = document.getElementById('admin-count-badge');
+      const toastContainer = document.getElementById('toast-container');
+
+      // State
+      let adminKey = localStorage.getItem('3mkfxg_admin_pass') || '';
+      let sessionToken = localStorage.getItem('3mkfxg_session_token') || '';
+
+      // Toast Helper
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
+
+        const icon = document.createElement('i');
+        icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+
+        const textNode = document.createElement('span');
+        textNode.innerText = message;
+
+        toast.appendChild(icon);
+        toast.appendChild(textNode);
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.add('toast-out');
+          toast.addEventListener('animationend', () => toast.remove());
+        }, 3000);
+      }
+
+      // Toggle Pass Visibility
+      btnTogglePass.addEventListener('click', () => {
+        const type = inputAdminKey.getAttribute('type') === 'password' ? 'text' : 'password';
+        inputAdminKey.setAttribute('type', type);
+        btnTogglePass.querySelector('i').className = type === 'password' ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+      });
+
+      // Submit passcode form
+      formAuth.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = inputAdminKey.value.trim();
+        if (!password) return;
+
+        try {
+            const loginResp = await fetch(`${API_BASE}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: '3mkfxg', password })
+            });
+            const loginData = await loginResp.json();
+            if (!loginResp.ok) {
+                throw new Error(loginData.error || 'Invalid admin password');
+            }
+            // Store session token and open admin dashboard
+            sessionToken = loginData.token;
+            localStorage.setItem('3mkfxg_session_token', sessionToken);
+            await verifyAndOpen(sessionToken, true);
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+      });
+
+      // Log out / Lock Console
+      btnLogout.addEventListener('click', async () => {
+        if (sessionToken) {
+          try {
+            await fetch(`${API_BASE}/api/auth/logout`, {
+              method: 'POST',
+              headers: { 'x-session-token': sessionToken }
+            });
+          } catch (e) { }
+          localStorage.removeItem('3mkfxg_session_token');
+          sessionToken = '';
+        }
+        adminKey = '';
+        localStorage.removeItem('3mkfxg_admin_pass');
+        adminDashboard.classList.add('hidden');
+        adminGate.classList.remove('hidden');
+        inputAdminKey.value = '';
+        showToast('Console locked and session cleared.', 'success');
+      });
+
+      // HTML Escaping
+      function escapeHTML(str) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      // Verify passcode or session token helper
+      async function verifyAndOpen(key, isSessionToken = false) {
+        try {
+          adminLoading.classList.remove('hidden');
+          adminEmpty.classList.add('hidden');
+          adminGrid.classList.add('hidden');
+
+          const headers = {};
+          if (isSessionToken) {
+            headers['x-session-token'] = key;
+          } else {
+            headers['x-admin-key'] = key;
+          }
+
+          const response = await fetch(`${API_BASE}/api/admin/questions`, { headers });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to authenticate');
+          }
+
+          const messages = await response.json();
+
+          // Successful Authenticated Session
+          if (isSessionToken) {
+            sessionToken = key;
+          } else {
+            adminKey = key;
+            localStorage.setItem('3mkfxg_admin_pass', key);
+          }
+
+          adminGate.classList.add('hidden');
+          adminDashboard.classList.remove('hidden');
+
+          renderAdminMessages(messages);
+          showToast('Database decrypted successfully!');
+        } catch (err) {
+          showToast(err.message, 'error');
+          adminLoading.classList.add('hidden');
+          if (!isSessionToken) {
+            localStorage.removeItem('3mkfxg_admin_pass');
+          }
+        }
+      }
+
+      // Render Admin Panel
+      function renderAdminMessages(messages) {
+        adminLoading.classList.add('hidden');
+        adminGrid.innerHTML = '';
+        adminCountBadge.innerText = `${messages.length} message${messages.length !== 1 ? 's' : ''}`;
+
+        if (messages.length === 0) {
+          adminEmpty.classList.remove('hidden');
+          return;
+        }
+
+        adminGrid.classList.remove('hidden');
+
+        messages.forEach(msg => {
+          const card = document.createElement('div');
+          const isPrivate = msg.is_private === 1;
+
+          card.className = `whisper-card ${isPrivate ? 'private-whisper' : 'public-whisper'}`;
+          card.id = `admin-card-${msg.id}`;
+
+          const date = new Date(msg.created_at).toLocaleString();
+
+          card.innerHTML = `
+            <div class="whisper-header-row">
+              <span class="meta-badge ${isPrivate ? 'badge-private-whisper' : 'badge-public-whisper'}">
+                <i class="fa-solid ${isPrivate ? 'fa-lock' : 'fa-globe'}"></i> ${isPrivate ? 'Private message' : 'Public message'}
+              </span>
+              <button class="btn-delete" data-id="${msg.id}">
+                <i class="fa-regular fa-trash-can"></i> Delete
+              </button>
+            </div>
+            
+            <div class="whisper-sender-info">
+              <i class="fa-regular fa-user"></i> Submitter: <strong>${escapeHTML(msg.name)}</strong>${msg.registered_user ? ` <span style="color: #00ff66; margin-left: 5px; font-size: 0.7rem; font-weight: 700; background: rgba(0, 255, 102, 0.08); padding: 2px 6px; border: 1px solid rgba(0, 255, 102, 0.15); border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-circle-check"></i> Verified Member (@${escapeHTML(msg.registered_user)})</span>` : ''}
+            </div>
+
+            <p class="whisper-content" style="z-index: 1;">${escapeHTML(msg.question)}</p>
+            
+            <div class="whisper-footer" style="margin-top: 8px;">
+              <span class="whisper-time"><i class="fa-regular fa-clock"></i> ${date}</span>
+              <span class="like-count"><i class="fa-solid fa-heart" style="color: var(--accent-purple);"></i> ${msg.likes} likes</span>
+            </div>
+          `;
+
+          adminGrid.appendChild(card);
+        });
+
+        // Delete buttons event listeners
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const messageId = btn.getAttribute('data-id');
+            if (confirm('Are you absolutely sure you want to delete this message completely from the database?')) {
+              await deleteMessage(messageId);
+            }
+          });
+        });
+      }
+
+      // Delete request
+      async function deleteMessage(id) {
+        try {
+          const headers = {};
+          if (sessionToken) {
+            headers['x-session-token'] = sessionToken;
+          } else {
+            headers['x-admin-key'] = adminKey;
+          }
+
+          const response = await fetch(`${API_BASE}/api/admin/questions/${id}`, {
+            method: 'DELETE',
+            headers: headers
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to delete message');
+          }
+
+          // Trigger slide out and remove from DOM dynamically
+          const card = document.getElementById(`admin-card-${id}`);
+          if (card) {
+            card.classList.add('card-deleted');
+            card.addEventListener('animationend', () => {
+              card.remove();
+              // Update badge count
+              const currentCards = document.querySelectorAll('.whisper-card');
+              adminCountBadge.innerText = `${currentCards.length} message${currentCards.length !== 1 ? 's' : ''}`;
+              if (currentCards.length === 0) {
+                adminEmpty.classList.remove('hidden');
+                adminGrid.classList.add('hidden');
+              }
+            });
+          }
+
+          showToast('Message deleted successfully!');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+
+      // Combined SSO Check and Auto-Login
+      async function initializeAdminPortal() {
+        if (sessionToken) {
+          try {
+            // Verify session token identity and check if user has admin role
+            const response = await fetch(`${API_BASE}/api/auth/me`, {
+              headers: { 'x-session-token': sessionToken }
+            });
+            if (response.ok) {
+              const user = await response.json();
+              if (user.role === 'admin') {
+                // Instantly bypass passcode gate and fetch data using session token
+                await verifyAndOpen(sessionToken, true);
+                return;
+              }
+            }
+          } catch (err) {
+            console.error('SSO verification failed:', err);
+          }
+        }
+
+        // Fallback to traditional passcode auto-login if no active admin session
+        if (adminKey) {
+          await verifyAndOpen(adminKey, false);
+        }
+      }
+
+      // Execute on startup
+      initializeAdminPortal();
+    });
+  </script>
+</body>
+
+</html>
