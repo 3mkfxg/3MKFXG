@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="htmlRoot">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3MK F X G — أنظمة حجز وإدارة الملاعب الرياضية | الأردن</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <!-- TOP UTILITY BAR -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <span class="status-indicator"></span>
+        <span data-ar="3MK F X G لتطوير البرمجيات والأنظمة الرياضية — عمّان، الأردن"
+          data-en="3MK F X G Sports Venue Software & Digital Infrastructure — Amman, Jordan">3MK F X G لتطوير البرمجيات
+          والأنظمة الرياضية — عمّان، الأردن</span>
+      </div>
+      <div class="topbar-right">
+        <span class="mono-text">JOD 500
+        </span>
+        <span class="topbar-sep">/</span>
+        <button id="langToggle" class="lang-switch" onclick="toggleLanguage()">English</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN NAVIGATION -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="#" class="brand">
+        <div class="brand-mark">3MK</div>
+        <div class="brand-divider"></div>
+        <div class="brand-meta">
+          <span class="brand-title">3MK F X G</span>
+          <span class="brand-sub" data-ar="أنظمة جدولة الملاعب" data-en="Court Booking Systems">أنظمة جدولة
+            الملاعب</span>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#system-demo" data-ar="معاينة النظام الحي" data-en="Live System Preview">معاينة النظام الحي</a>
+        <a href="#operational-impact" data-ar="الأثر التشغيلي" data-en="Operational Impact">الأثر التشغيلي</a>
+        <a href="#package-scope" data-ar="مواصفات النظام (500 د.أ)" data-en="System Scope (500 JOD)">مواصفات النظام (500
+          د.أ)</a>
+      </nav>
+
+      <div class="nav-cta">
+        <a href="#system-demo" class="btn-solid" data-ar="معاينة النظام التفاعلي"
+          data-en="Explore Interactive System">معاينة النظام التفاعلي</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- EDITORIAL HERO SECTION -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-layout">
+        <div class="hero-copy">
+          <div class="eyebrow-tag">
+            <span class="eyebrow-code">SYS-v2.4</span>
+            <span data-ar="مخصص لملاعب البادل وكرة القدم والأندية الرياضية في الأردن"
+              data-en="Built for Padel Clubs, Football Pitches & Sports Academies in Jordan">مخصص لملاعب البادل وكرة
+              القدم والأندية الرياضية في الأردن</span>
+          </div>
+
+          <h1 class="hero-heading" data-ar="نظام حجز وجدولة إلكتروني خاص بملعبك، ينهي فوضى المكالمات وتضارب المواعيد."
+            data-en="A dedicated court booking & scheduling platform under your club's own domain.">
+            نظام حجز وجدولة إلكتروني خاص بملعبك، ينهي فوضى المكالمات وتضارب المواعيد.
+          </h1>
+
+          <p class="hero-lead"
+            data-ar="بدلاً من الاعتماد على الرد اليدوي عبر الهاتف أو دفاتر التسجيل الورقية، نجهز لملعبك موقعاً رسمياً يعرض الأوقات المتاحة والمحجوزة بشكل لحظي. يختار اللاعب الملعب والمدة الزمنية ويحجز مباشرة برقم هاتفه، بينما تدير أنت الحجوزات الفردية والثابتة من لوحة تحكم مركزية."
+            data-en="Replace manual phone coordination and paper logs with a dedicated web platform branded for your venue. Players check live court availability and reserve slots by phone in seconds, while your staff manages walk-ins and recurring weekly teams from one central ledger.">
+            بدلاً من الاعتماد على الرد اليدوي عبر الهاتف أو دفاتر التسجيل الورقية، نجهز لملعبك موقعاً رسمياً يعرض
+            الأوقات المتاحة والمحجوزة بشكل لحظي. يختار اللاعب الملعب والمدة الزمنية ويحجز مباشرة برقم هاتفه، بينما تدير
+            أنت الحجوزات الفردية والثابتة من لوحة تحكم مركزية.
+          </p>
+
+          <div class="hero-action-bar">
+            <a href="#system-demo" class="btn-solid btn-large">
+              <span data-ar="معاينة وتجربة النظام التفاعلي" data-en="Explore Interactive System">معاينة وتجربة النظام
+                التفاعلي</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+            <a href="#package-scope" class="btn-outline btn-large" data-ar="تفاصيل عقد التملك (500 د.أ)"
+              data-en="View 500 JOD Turnkey Specs">تفاصيل عقد التملك (500 د.أ)</a>
+          </div>
+
+          <div class="hero-metrics-strip">
+            <div class="metric-cell">
+              <span class="metric-val mono-text">500 JOD</span>
+              <span class="metric-lbl" data-ar="تكلفة تأسيس لمرة واحدة (تملك كامل)"
+                data-en="One-time setup (Full ownership)">تكلفة تأسيس لمرة واحدة (تملك كامل)</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-val mono-text">0.0%</span>
+              <span class="metric-lbl" data-ar="عمولة على حجوزات الملعب" data-en="Commission on venue bookings">عمولة
+                على حجوزات الملعب</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-val mono-text">48 HRS</span>
+              <span class="metric-lbl" data-ar="مدة التجهيز والربط والتشغيل"
+                data-en="Deployment & configuration time">مدة التجهيز والربط والتشغيل</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARCHITECTURAL VENUE CARD + LIVE SUMMARY -->
+        <div class="hero-visual">
+          <div class="venue-showcase-card">
+            <div class="venue-img-wrap">
+              <img src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1000&q=85"
+                alt="Padel & Sports Court Facility" class="venue-img" />
+              <div class="venue-img-overlay">
+                <span class="venue-tag" data-ar="نموذج حي لواجهة الملعب" data-en="LIVE VENUE INTERFACE">نموذج حي لواجهة
+                  الملعب</span>
+                <div class="venue-overlay-bottom">
+                  <div>
+                    <h3 data-ar="مجمع ملاعب البادل وكرة القدم — عمّان" data-en="Amman Padel & Turf Complex">مجمع ملاعب
+                      البادل وكرة القدم — عمّان</h3>
+                    <p data-ar="4 ملاعب نشطة • الحجز الإلكتروني مفعل"
+                      data-en="4 Active Courts • Online Scheduling Enabled">4 ملاعب نشطة • الحجز الإلكتروني مفعل</p>
+                  </div>
+                  <span class="mono-badge">94% OCCUPANCY</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="venue-live-ticker">
+              <div class="ticker-head">
+                <span data-ar="حركة الحجوزات اليومية (تحديث تلقائي)" data-en="Today's Court Schedule Snapshot">حركة
+                  الحجوزات اليومية (تحديث تلقائي)</span>
+                <span class="mono-text">18:00 — 23:00</span>
+              </div>
+              <div class="ticker-rows">
+                <div class="ticker-row">
+                  <div class="t-court">
+                    <span class="t-dot dot-occupied"></span>
+                    <strong data-ar="بادل #1" data-en="Panoramic Padel #1">بادل #1</strong>
+                  </div>
+                  <span class="t-time mono-text">19:00 - 20:30</span>
+                  <span class="t-tag tag-booked" data-ar="محجوز " data-en="Reserved — T. Al-Zoubi">محجوز </span>
+                </div>
+                <div class="ticker-row">
+                  <div class="t-court">
+                    <span class="t-dot dot-free"></span>
+                    <strong data-ar="بادل #2" data-en="Panoramic Padel #2">بادل #2</strong>
+                  </div>
+                  <span class="t-time mono-text">20:00 - 21:30</span>
+                  <span class="t-tag tag-open" data-ar="متاح للحجز الفوري (25 د.أ)" data-en="Open Slot (25 JOD)">متاح
+                    للحجز الفوري (25 د.أ)</span>
+                </div>
+                <div class="ticker-row">
+                  <div class="t-court">
+                    <span class="t-dot dot-occupied"></span>
+                    <strong data-ar="ملعب خماسي عشب" data-en="5v5 Turf Pitch A">ملعب خماسي عشب</strong>
+                  </div>
+                  <span class="t-time mono-text">21:00 - 22:00</span>
+                  <span class="t-tag tag-recurring" data-ar="حجز أسبوعي ثابت" data-en="Fixed Weekly Team">حجز أسبوعي
+                    ثابت</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE PRODUCT WORKBENCH (THE REAL SYSTEM DEMO) -->
+  <section id="system-demo" class="section section-bordered">
+    <div class="container">
+      <div class="section-intro">
+        <div>
+          <span class="section-kicker" data-ar="01 / معاينة النظام التفاعلي"
+            data-en="01 / INTERACTIVE PRODUCT ENVIRONMENT">01 / معاينة النظام التفاعلي</span>
+          <h2 class="section-title" data-ar="جرّب النظام كما يراه اللاعب وكما يديره صاحب الملعب"
+            data-en="Test-Drive the Player Booking Portal & Owner Ledger">جرّب النظام كما يراه اللاعب وكما يديره صاحب
+            الملعب</h2>
+        </div>
+        <p class="section-sub"
+          data-ar="يعمل النظام بدون تعقيدات الدفع بالبطاقات البنكية؛ يحجز اللاعب موعده برقم هاتفه ويتلقى تأكيداً فورياً، ويتم الدفع في الملعب نقداً أو عبر CliQ كالمعتاد."
+          data-en="Designed around how Jordanian venues actually operate: frictionless phone-verified reservations with direct on-site Cash or CliQ settlement.">
+          يعمل النظام بدون تعقيدات الدفع بالبطاقات البنكية؛ يحجز اللاعب موعده برقم هاتفه ويتلقى تأكيداً فورياً، ويتم
+          الدفع في الملعب نقداً أو عبر CliQ كالمعتاد.
+        </p>
+      </div>
+
+      <!-- SOFTWARE FRAME -->
+      <div class="software-frame">
+        <!-- Application Top Bar -->
+        <div class="app-toolbar">
+          <div class="app-club-identity">
+            <span class="club-avatar">AC</span>
+            <div>
+              <div class="club-title" data-ar="نادي وملاعب عمّان كلوب (نموذج تجريبي حي)"
+                data-en="Amman Courts & Turf Club (Live Sandbox)">نادي وملاعب عمّان كلوب (نموذج تجريبي حي)</div>
+              <div class="club-meta" data-ar="طريق المطار، عمّان • ساعات العمل: 16:00 حتى 02:00 صباحاً"
+                data-en="Airport Rd, Amman • Operating Hours: 16:00 – 02:00">طريق المطار، عمّان • ساعات العمل: 16:00 حتى
+                02:00 صباحاً</div>
+            </div>
+          </div>
+
+          <div class="app-view-switcher">
+            <button id="tabPlayerBtn" class="view-btn active" onclick="switchDemoMode('player')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span data-ar="بوابة حجز اللاعبين" data-en="Player Booking View">بوابة حجز اللاعبين</span>
+            </button>
+            <button id="tabAdminBtn" class="view-btn" onclick="switchDemoMode('admin')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              <span data-ar="لوحة إدارة المالك" data-en="Owner Management Ledger">لوحة إدارة المالك</span>
+              <span id="adminBadgeCount" class="count-pill mono-text">4</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW 1: PLAYER BOOKING INTERFACE -->
+        <div id="playerDemoView" class="app-body">
+          <div class="filters-bar">
+            <div class="filter-block">
+              <label class="filter-label" data-ar="اختر الملعب / المرفق" data-en="Select Court / Pitch">اختر الملعب /
+                المرفق</label>
+              <div class="court-tabs" id="courtButtons">
+                <button class="court-tab active" onclick="selectCourt('padel1')" data-court="padel1">
+                  <span class="court-tab-name" data-ar="ملعب بادل 1 — داخلي" data-en="Padel Court 1 — Indoor">ملعب بادل
+                    1 — داخلي</span>
+                  <span class="court-tab-spec mono-text">Mondo Turf • 26 JOD/hr</span>
+                </button>
+                <button class="court-tab" onclick="selectCourt('padel2')" data-court="padel2">
+                  <span class="court-tab-name" data-ar="ملعب بادل 2 — بانوراما" data-en="Padel Court 2 — Panoramic">ملعب
+                    بادل 2 — بانوراما</span>
+                  <span class="court-tab-spec mono-text">VIP Glass • 30 JOD/hr</span>
+                </button>
+                <button class="court-tab" onclick="selectCourt('football5')" data-court="football5">
+                  <span class="court-tab-name" data-ar="ملعب كرة قدم خماسي" data-en="5-a-Side Football Pitch">ملعب كرة
+                    قدم خماسي</span>
+                  <span class="court-tab-spec mono-text">FIFA Turf • 20 JOD/hr</span>
+                </button>
+                <button class="court-tab" onclick="selectCourt('football7')" data-court="football7">
+                  <span class="court-tab-name" data-ar="ملعب كرة قدم سباعي" data-en="7-a-Side Football Pitch">ملعب كرة
+                    قدم سباعي</span>
+                  <span class="court-tab-spec mono-text">Pro Arena • 35 JOD/hr</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="filter-block date-picker-block">
+              <label class="filter-label" data-ar="تاريخ الحجز" data-en="Reservation Date">تاريخ الحجز</label>
+              <input type="date" id="bookingDateInput" class="date-input mono-text" onchange="renderTimeSlots()" />
+            </div>
+          </div>
+
+          <div class="schedule-meta-bar">
+            <div class="legend-group">
+              <span class="legend-pill"><span class="l-box l-avail"></span> <span
+                  data-ar="متاح للحجز الفوري (اضغط على الوقت للحجز)" data-en="Available Slot (Click to Reserve)">متاح
+                  للحجز الفوري (اضغط على الوقت للحجز)</span></span>
+              <span class="legend-pill"><span class="l-box l-booked"></span> <span data-ar="محجوز / مقفل"
+                  data-en="Reserved / Locked">محجوز / مقفل</span></span>
+            </div>
+            <div class="court-specs-note" id="activeCourtSpecs"></div>
+          </div>
+
+          <!-- SLOTS GRID -->
+          <div id="slotsGrid" class="schedule-grid"></div>
+        </div>
+
+        <!-- VIEW 2: OWNER MANAGEMENT LEDGER -->
+        <div id="adminDemoView" class="app-body hidden">
+          <div class="admin-header-row">
+            <div>
+              <h3 class="admin-title" data-ar="سجل الحجوزات المركزية (لوحة تحكم المالك والموظفين)"
+                data-en="Central Reservation Ledger (Owner & Staff Console)">سجل الحجوزات المركزية (لوحة تحكم المالك
+                والموظفين)</h3>
+              <p class="admin-desc"
+                data-ar="جميع الحجوزات التي تتم عبر الموقع أو تضاف يدوياً تظهر هنا مع أرقام هواتف اللاعبين وإمكانية إرسال رسالة تأكيد عبر واتساب أو إلغاء الحجز لإعادة فتح الساعة."
+                data-en="All online and staff-entered bookings appear here in real time. Send 1-click WhatsApp confirmations or release cancelled slots back to the public calendar.">
+                جميع الحجوزات التي تتم عبر الموقع أو تضاف يدوياً تظهر هنا مع أرقام هواتف اللاعبين وإمكانية إرسال رسالة
+                تأكيد عبر واتساب أو إلغاء الحجز لإعادة فتح الساعة.</p>
+            </div>
+            <button class="btn-outline btn-sm" onclick="switchDemoMode('player')" data-ar="+ إضافة حجز يدوي جديد"
+              data-en="+ Add Manual Walk-in Booking">+ إضافة حجز يدوي جديد</button>
+          </div>
+
+          <div class="table-container">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th data-ar="رقم المرجع" data-en="Ref ID">رقم المرجع</th>
+                  <th data-ar="الملعب" data-en="Court / Pitch">الملعب</th>
+                  <th data-ar="التاريخ والوقت" data-en="Date & Time">التاريخ والوقت</th>
+                  <th data-ar="اسم الحاجز" data-en="Customer Name">اسم الحاجز</th>
+                  <th data-ar="رقم الهاتف" data-en="Phone Number">رقم الهاتف</th>
+                  <th data-ar="نوع الحجز" data-en="Type">نوع الحجز</th>
+                  <th data-ar="إجراءات الإدارة" data-en="Staff Actions">إجراءات الإدارة</th>
+                </tr>
+              </thead>
+              <tbody id="adminBookingsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESERVATION MODAL -->
+  <div id="bookingModal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-top">
+        <div>
+          <span class="modal-kicker mono-text" data-ar="تأكيد حجز موعد" data-en="NEW COURT RESERVATION">تأكيد حجز
+            موعد</span>
+          <h3 data-ar="إدخال بيانات الحاجز" data-en="Complete Reservation Details">إدخال بيانات الحاجز</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeBookingModal()" aria-label="Close">✕</button>
+      </div>
+
+      <div id="modalSlotSummary" class="modal-summary-box"></div>
+
+      <form onsubmit="confirmDemoBooking(event)" class="modal-form">
+        <div class="field-row">
+          <label data-ar="الاسم الكامل (اسم الكابتن أو الفريق)" data-en="Full Name (Player or Team Name)">الاسم الكامل
+            (اسم الكابتن أو الفريق)</label>
+          <input type="text" id="playerNameInput" required placeholder="مثال: زيد الحياري" />
+        </div>
+        <div class="field-row">
+          <label data-ar="رقم الهاتف الخلوي (الأردن)" data-en="Mobile Phone Number (Jordan)">رقم الهاتف الخلوي
+            (الأردن)</label>
+          <input type="tel" id="playerPhoneInput" class="mono-text" dir="ltr" required placeholder="079XXXXXXX" />
+        </div>
+        <div class="field-row">
+          <label data-ar="نوع الحجز وملاحظات التجهيز" data-en="Booking Type & Equipment Notes">نوع الحجز وملاحظات
+            التجهيز</label>
+          <input type="text" id="playerNotesInput" placeholder="مثال: حجز فردي — مطلوب 4 مضارب بادل" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick="closeBookingModal()" data-ar="إلغاء"
+            data-en="Cancel">إلغاء</button>
+          <button type="submit" class="btn-solid" data-ar="تأكيد وقفل الساعة الآن" data-en="Confirm & Lock Slot">تأكيد
+            وقفل الساعة الآن</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- OPERATIONAL IMPACT (WHY VENUES NEED THIS) -->
+  <section id="operational-impact" class="section bg-surface-alt section-bordered">
+    <div class="container">
+      <div class="section-intro">
+        <div>
+          <span class="section-kicker" data-ar="02 / المشكلة التشغيلية والحل" data-en="02 / OPERATIONAL BOTTLENECKS">02
+            / المشكلة التشغيلية والحل</span>
+          <h2 class="section-title" data-ar="لماذا تنتقل الملاعب الحديثة في الأردن من الحجز الهاتفي إلى الجدولة الآلية؟"
+            data-en="Why Venues Are Replacing Phone Coordination with Automated Scheduling">لماذا تنتقل الملاعب الحديثة
+            في الأردن من الحجز الهاتفي إلى الجدولة الآلية؟</h2>
+        </div>
+      </div>
+
+      <div class="impact-table-wrap">
+        <table class="comparison-matrix">
+          <thead>
+            <tr>
+              <th style="width: 24%;" data-ar="محور المقارنة التشغيلي" data-en="Operational Area">محور المقارنة التشغيلي
+              </th>
+              <th style="width: 38%;" class="col-legacy" data-ar="الإدارة التقليدية (الهاتف ودفتر الحجوزات)"
+                data-en="Manual Operations (Phone & Paper Ledger)">الإدارة التقليدية (الهاتف ودفتر الحجوزات)</th>
+              <th style="width: 38%;" class="col-modern" data-ar="نظام 3MK F X G المخصص لملعبك"
+                data-en="3MK F X G Dedicated Venue Platform">نظام 3MK F X G المخصص لملعبك</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong data-ar="الاستفسار عن الأوقات المتاحة" data-en="Checking Available Hours">الاستفسار عن الأوقات
+                  المتاحة</strong></td>
+              <td class="col-legacy"
+                data-ar="يتصل اللاعب أو يراسل على واتساب وينتظر رد الموظف لمعرفة الساعات الشاغرة اليوم."
+                data-en="Players must call or message on WhatsApp and wait for staff to read off available hours.">يتصل
+                اللاعب أو يراسل على واتساب وينتظر رد الموظف لمعرفة الساعات الشاغرة اليوم.</td>
+              <td class="col-modern"
+                data-ar="يدخل اللاعب على رابط الملعب، يشاهد الجدول المحدث لحظياً لكل ملعب ويحجز خلال 20 ثانية."
+                data-en="Players open your link from Instagram or WhatsApp, view real-time availability, and book in 20 seconds.">
+                يدخل اللاعب على رابط الملعب، يشاهد الجدول المحدث لحظياً لكل ملعب ويحجز خلال 20 ثانية.</td>
+            </tr>
+            <tr>
+              <td><strong data-ar="حجوزات ما بعد منتصف الليل" data-en="Late-Night Reservations">حجوزات ما بعد منتصف
+                  الليل</strong></td>
+              <td class="col-legacy"
+                data-ar="تضيع الحجوزات بين الساعة 12:00 ليلاً و10:00 صباحاً لعدم وجود موظف يرد على الهاتف."
+                data-en="Bookings between midnight and 10:00 AM are lost when no one is available to answer the phone.">
+                تضيع الحجوزات بين الساعة 12:00 ليلاً و10:00 صباحاً لعدم وجود موظف يرد على الهاتف.</td>
+              <td class="col-modern" data-ar="البوابة تعمل 24 ساعة وتستقبل الحجوزات تلقائياً أثناء إغلاق الإدارة."
+                data-en="The booking engine runs 24/7, capturing late-night and early-morning reservations automatically.">
+                البوابة تعمل 24 ساعة وتستقبل الحجوزات تلقائياً أثناء إغلاق الإدارة.</td>
+            </tr>
+            <tr>
+              <td><strong data-ar="تضارب المواعيد (Double Booking)" data-en="Double-Booking Conflicts">تضارب المواعيد
+                  (Double Booking)</strong></td>
+              <td class="col-legacy"
+                data-ar="احتمالية عالية لتسجيل فريقين في نفس الساعة نتيجة النسيان أو تعدد الموظفين."
+                data-en="High risk of two teams showing up for the same slot due to notebook errors or shift handovers.">
+                احتمالية عالية لتسجيل فريقين في نفس الساعة نتيجة النسيان أو تعدد الموظفين.</td>
+              <td class="col-modern" data-ar="قفل فوري للساعة المحجوزة يمنع أي حجز مزدوج لنفس الملعب والتوقيت."
+                data-en="Atomic slot locking guarantees that once a court hour is taken, it cannot be double-booked.">
+                قفل فوري للساعة المحجوزة يمنع أي حجز مزدوج لنفس الملعب والتوقيت.</td>
+            </tr>
+            <tr>
+              <td><strong data-ar="العمولات والاقتطاعات" data-en="Platform Commissions">العمولات والاقتطاعات</strong>
+              </td>
+              <td class="col-legacy"
+                data-ar="تطبيقات الوساطة تقتطع 10% إلى 15% من قيمة كل حجز وتعرض ملاعب منافسة بجانب ملعبك."
+                data-en="Third-party aggregator apps take 10–15% commission per booking and list your competitors next to you.">
+                تطبيقات الوساطة تقتطع 10% إلى 15% من قيمة كل حجز وتعرض ملاعب منافسة بجانب ملعبك.</td>
+              <td class="col-modern"
+                data-ar="موقع مستقل باسم ملعبك فقط، تملك كامل مقابل 500 دينار و0% عمولة على الحجوزات."
+                data-en="Your own standalone platform with zero competitors listed and 0% commission forever.">موقع
+                مستقل باسم ملعبك فقط، تملك كامل مقابل 500 دينار و0% عمولة على الحجوزات.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PACKAGE DELIVERABLES (WHAT YOU GET FOR 500 JOD) -->
+  <section id="package-scope" class="section section-bordered">
+    <div class="container">
+      <div class="section-intro">
+        <div>
+          <span class="section-kicker" data-ar="03 / نطاق التوريد والتشغيل"
+            data-en="03 / DELIVERABLES & SPECIFICATIONS">03 / نطاق التوريد والتشغيل</span>
+          <h2 class="section-title" data-ar="ماذا يشمل عقد الـ 500 دينار أردني؟"
+            data-en="What Is Included in the 500 JOD Turnkey Package">ماذا يشمل عقد الـ 500 دينار أردني؟</h2>
+        </div>
+        <p class="section-sub"
+          data-ar="نسلمك بنية برمجية متكاملة مخصصة لهوية ناديك الرياضي وجاهزة للاستخدام الفوري من قبل اللاعبين والإدارة."
+          data-en="A complete software deployment tailored to your club's courts, pricing tiers, and operating hours.">
+          نسلمك بنية برمجية متكاملة مخصصة لهوية ناديك الرياضي وجاهزة للاستخدام الفوري من قبل اللاعبين والإدارة.
+        </p>
+      </div>
+
+      <div class="specs-grid">
+        <div class="spec-item">
+          <div class="spec-num mono-text">01</div>
+          <h3 data-ar="نطاق رسمي وهوية بصرية خاصة بملعبك" data-en="Custom Domain & Club Branding">نطاق رسمي وهوية بصرية
+            خاصة بملعبك</h3>
+          <p data-ar="تخصيص كامل بشعار الملعب، الصور الحقيقية للملاعب، الأسعار، وربط الموقع المباشر على خرائط Google لسهولة وضع الرابط في حساب Instagram ورسائل WhatsApp."
+            data-en="Tailored with your club's logo, court photography, surface specifications, and Google Maps directions—ready to place directly in your Instagram bio.">
+            تخصيص كامل بشعار الملعب، الصور الحقيقية للملاعب، الأسعار، وربط الموقع المباشر على خرائط Google لسهولة وضع
+            الرابط في حساب Instagram ورسائل WhatsApp.</p>
+        </div>
+
+        <div class="spec-item">
+          <div class="spec-num mono-text">02</div>
+          <h3 data-ar="محرك جدولة يدعم تعدد الملاعب والرياضات" data-en="Multi-Court & Multi-Sport Scheduling Engine">
+            محرك جدولة يدعم تعدد الملاعب والرياضات</h3>
+          <p data-ar="سواء كان لديك ملعب واحد أو مجمع يضم ملاعب بادل وكرة قدم (خماسي/سباعي)، يتم تقسيم كل ملعب بجدوله وأسعاره الخاصة (ساعات نهارية وساعات ذروة مسائية)."
+            data-en="Configure unlimited courts (Padel, 5v5, 7v7, Tennis) with independent schedules, slot durations (60/90/120 min), and peak/off-peak hourly pricing.">
+            سواء كان لديك ملعب واحد أو مجمع يضم ملاعب بادل وكرة قدم (خماسي/سباعي)، يتم تقسيم كل ملعب بجدوله وأسعاره
+            الخاصة (ساعات نهارية وساعات ذروة مسائية).</p>
+        </div>
+
+        <div class="spec-item">
+          <div class="spec-num mono-text">03</div>
+          <h3 data-ar="حجز مباشر برقم الهاتف بدون تعقيد بنكي" data-en="Phone-First Booking Flow (No Gateway Friction)">
+            حجز مباشر برقم الهاتف بدون تعقيد بنكي</h3>
+          <p data-ar="مصمم ليتناسب مع طبيعة السوق الأردني: اللاعب يثبت حجزه بالاسم ورقم الهاتف دون الحاجة لبطاقة ائتمانية، ويتم التحصيل نقداً أو عبر CliQ لحسابك مباشرة."
+            data-en="Built for high conversion in Jordan: players reserve with their name and mobile number without credit card barriers, settling directly with your venue via Cash or CliQ.">
+            مصمم ليتناسب مع طبيعة السوق الأردني: اللاعب يثبت حجزه بالاسم ورقم الهاتف دون الحاجة لبطاقة ائتمانية، ويتم
+            التحصيل نقداً أو عبر CliQ لحسابك مباشرة.</p>
+        </div>
+
+        <div class="spec-item">
+          <div class="spec-num mono-text">04</div>
+          <h3 data-ar="لوحة إدارة للمالك وموظفي الاستقبال" data-en="Owner & Reception Desk Control Panel">لوحة إدارة
+            للمالك وموظفي الاستقبال</h3>
+          <p data-ar="واجهة خاصة محمية بكلمة مرور تتيح لك إضافة الحجوزات الهاتفية يدوياً، تثبيت الحجوزات الأسبوعية للأكاديميات والفرق الثابتة، وإلغاء أو تعديل أي موعد."
+            data-en="Password-protected staff console to log walk-in or phone bookings, lock recurring weekly slots for academies, and release cancelled hours instantly.">
+            واجهة خاصة محمية بكلمة مرور تتيح لك إضافة الحجوزات الهاتفية يدوياً، تثبيت الحجوزات الأسبوعية للأكاديميات
+            والفرق الثابتة، وإلغاء أو تعديل أي موعد.</p>
+        </div>
+
+        <div class="spec-item">
+          <div class="spec-num mono-text">05</div>
+          <h3 data-ar="تكامل الإشعارات وتأكيد الواتساب بنقرة واحدة" data-en="1-Click WhatsApp Confirmation Dispatch">
+            تكامل الإشعارات وتأكيد الواتساب بنقرة واحدة</h3>
+          <p data-ar="من داخل سجل الحجوزات، يمكن للمشرف إرسال رسالة تأكيد رسمية للاعب عبر WhatsApp تحتوي على تفاصيل الملعب والتاريخ والوقت والموقع الجغرافي."
+            data-en="Send formatted WhatsApp booking confirmations with court number, time, and Google Maps pin directly from your reservation ledger in one click.">
+            من داخل سجل الحجوزات، يمكن للمشرف إرسال رسالة تأكيد رسمية للاعب عبر WhatsApp تحتوي على تفاصيل الملعب
+            والتاريخ والوقت والموقع الجغرافي.</p>
+        </div>
+
+        <div class="spec-item">
+          <div class="spec-num mono-text">06</div>
+          <h3 data-ar="واجهة ثنائية اللغة (عربي / إنجليزي) متوافقة مع الهواتف"
+            data-en="Bilingual RTL/LTR Mobile-Optimized Web App">واجهة ثنائية اللغة (عربي / إنجليزي) متوافقة مع الهواتف
+          </h3>
+          <p data-ar="أكثر من 92% من حجوزات الملاعب في الأردن تتم عبر الجوال؛ النظام مصمم ليعمل بسرعة فائقة على جميع أجهزة iPhone وAndroid باللغتين العربية والإنجليزية."
+            data-en="Over 92% of court reservations in Jordan happen on mobile. The interface loads sub-second on iOS and Android with native Arabic and English support.">
+            أكثر من 92% من حجوزات الملاعب في الأردن تتم عبر الجوال؛ النظام مصمم ليعمل بسرعة فائقة على جميع أجهزة iPhone
+            وAndroid باللغتين العربية والإنجليزية.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <strong>3MK F X G</strong>
+        <span data-ar="تطوير الأنظمة والبرمجيات للمنشآت الرياضية — المملكة الأردنية الهاشمية"
+          data-en="Sports Venue Software & Booking Infrastructure — Hashemite Kingdom of Jordan">تطوير الأنظمة
+          والبرمجيات للمنشآت الرياضية — المملكة الأردنية الهاشمية</span>
+      </div>
+      <div class="footer-meta mono-text">
+        © 2026 3MK F X G • AMMAN, JORDAN
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
